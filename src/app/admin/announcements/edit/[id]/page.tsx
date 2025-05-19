@@ -48,8 +48,8 @@ export default function EditAnnouncementPage() {
       content: "",
       imageUrl: "",
       summary: "",
-      categories: [],
-      tags: [],
+      categories: "", // Changed from []
+      tags: "",       // Changed from []
     },
   });
 
@@ -65,11 +65,10 @@ export default function EditAnnouncementPage() {
               content: data.content || "",
               imageUrl: data.imageUrl || "",
               summary: data.summary || "",
-              // The form fields for categories and tags handle array-to-string conversion via their `value` prop
-              categories: data.categories || [],
-              tags: data.tags || [],
+              categories: data.categories ? data.categories.join(', ') : "", // Join array to string
+              tags: data.tags ? data.tags.join(', ') : "",                   // Join array to string
             };
-            form.reset(formDataToReset);
+            form.reset(formDataToReset); // form.reset now gets strings for categories/tags
             setAnnouncementNotFound(false);
           } else {
             setAnnouncementNotFound(true);
@@ -126,6 +125,7 @@ export default function EditAnnouncementPage() {
   const onSubmit: SubmitHandler<AnnouncementFormData> = async (data) => {
     setIsSubmitting(true);
     try {
+      // data.categories and data.tags are now string[] due to Zod transform
       const announcementUpdateData: Partial<Omit<Announcement, "id" | "createdAt" | "updatedAt">> = {
         ...data,
       };
@@ -263,13 +263,12 @@ export default function EditAnnouncementPage() {
                   <FormField
                     control={form.control}
                     name="categories"
-                    render={({ field }) => (
+                    render={({ field }) => ( // field.value is now a string
                       <FormItem>
                         <FormLabel>AI Categories</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g., Urbanisme, Événement" {...field} 
-                           onChange={e => field.onChange(e.target.value)}
-                           value={Array.isArray(field.value) ? field.value.join(', ') : (field.value || '')}
+                           value={field.value || ""} // Simplified value prop
                           />
                         </FormControl>
                         <FormDescription>Comma-separated values.</FormDescription>
@@ -280,13 +279,12 @@ export default function EditAnnouncementPage() {
                   <FormField
                     control={form.control}
                     name="tags"
-                    render={({ field }) => (
+                    render={({ field }) => ( // field.value is now a string
                       <FormItem>
                         <FormLabel>AI Tags</FormLabel>
                         <FormControl>
                            <Input placeholder="e.g., réunion, mairie, projet" {...field} 
-                            onChange={e => field.onChange(e.target.value)}
-                            value={Array.isArray(field.value) ? field.value.join(', ') : (field.value || '')}
+                            value={field.value || ""} // Simplified value prop
                            />
                         </FormControl>
                         <FormDescription>Comma-separated values.</FormDescription>
