@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,17 +42,15 @@ export default function SubscriptionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {availableCategories.map((category) => (
-              <li key={category.id} className="p-3 border rounded-md bg-secondary/50">
-                <div className="flex items-center gap-2">
-                  <ListChecks className="h-5 w-5 text-primary" />
-                  <span className="font-medium">{category.name}</span>
-                </div>
-              </li>
+              <div key={category.id} className="flex flex-col items-center justify-center p-4 border rounded-lg shadow-sm bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                <ListChecks className="h-8 w-8 text-primary mb-2" />
+                <span className="font-medium text-center text-sm text-secondary-foreground">{category.name}</span>
+              </div>
             ))}
-          </ul>
-          <p className="mt-4 text-sm text-muted-foreground">
+          </div>
+          <p className="mt-6 text-sm text-muted-foreground">
             Note: Actual citizen subscription management occurs through the citizen mobile application. This section provides an overview and tools for targeted communication.
           </p>
         </CardContent>
@@ -101,3 +100,4 @@ export default function SubscriptionsPage() {
     </div>
   );
 }
+
