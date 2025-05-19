@@ -17,6 +17,8 @@ import { createAnnouncement } from "@/lib/actions/announcements";
 import { Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 import type { Announcement } from "@/types";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const announcementSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
@@ -34,6 +36,7 @@ export default function NewAnnouncementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<AnnouncementFormData>({
     resolver: zodResolver(announcementSchema),
@@ -44,7 +47,7 @@ export default function NewAnnouncementPage() {
       summary: "",
       categories: "", 
       tags: "",       
-      status: "draft", // Default status
+      status: "draft", 
     },
   });
 
@@ -109,6 +112,7 @@ export default function NewAnnouncementPage() {
           description: `"${result.title}" has been successfully ${submitStatus === 'published' ? 'published' : 'saved as a draft'}.`,
         });
         form.reset(); 
+        router.push("/admin/announcements"); // Navigate to list after successful creation
       }
     } catch (error) {
       toast({
@@ -125,8 +129,12 @@ export default function NewAnnouncementPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Create New Announcement</h2>
-      {/* Removed onSubmit from form tag, using button clicks to trigger submit with status */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold tracking-tight">Create New Announcement</h2>
+        <Button variant="outline" asChild>
+          <Link href="/admin/announcements">Cancel</Link>
+        </Button>
+      </div>
       <Form {...form}>
         <form className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -245,7 +253,7 @@ export default function NewAnnouncementPage() {
               </Card>
                <Card>
                 <CardHeader>
-                    <CardTitle>Actions</CardTitle> {/* Changed title */}
+                    <CardTitle>Actions</CardTitle> 
                 </CardHeader>
                 <CardFooter className="flex flex-col sm:flex-row gap-2">
                     <Button 
