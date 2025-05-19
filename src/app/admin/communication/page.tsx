@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getAnnouncements } from "@/lib/actions/announcements";
 import type { Announcement } from "@/types";
 import { availableCategories } from "@/types"; 
-import { Send, MessageSquare, Smartphone, MessageCircle, Loader2, Sparkles } from "lucide-react";
+import { Send, MessageSquare, Smartphone, MessageCircle, Loader2, Sparkles, CalendarClock } from "lucide-react";
 import { getAIDraftedMessage } from "@/lib/actions/ai";
 
 export default function CommunicationPage() {
@@ -83,21 +83,14 @@ export default function CommunicationPage() {
   };
 
   const handleSend = async () => {
-    if (!selectedAnnouncementId && !message) {
-      toast({ title: "Error", description: "Please select an announcement or write a custom message.", variant: "destructive" });
-      return;
-    }
-    if (selectedCategories.length === 0) {
-      toast({ title: "Error", description: "Please select at least one target category.", variant: "destructive" });
-      return;
-    }
-    if (!sendSms && !sendPush && !sendWhatsapp) {
-      toast({ title: "Error", description: "Please select at least one channel (SMS, Push, or WhatsApp).", variant: "destructive" });
+    // This check is technically redundant if the button is correctly disabled, but good for safety.
+    if (!message.trim() || selectedCategories.length === 0 || (!sendSms && !sendPush && !sendWhatsapp)) {
+      toast({ title: "Error", description: "Please complete all fields: message, target audience, and at least one channel.", variant: "destructive" });
       return;
     }
 
     setIsSending(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
 
     const sentChannels: string[] = [];
     if (sendSms) sentChannels.push("SMS");
@@ -121,7 +114,9 @@ export default function CommunicationPage() {
   };
   
   const selectedAnnForAIDraft = announcements.find(ann => ann.id === selectedAnnouncementId);
-  const noChannelsSelectedForAIDraft = !sendSms && !sendPush && !sendWhatsapp;
+  const noChannelsSelected = !sendSms && !sendPush && !sendWhatsapp;
+
+  const canSubmit = !message.trim() || selectedCategories.length === 0 || noChannelsSelected;
 
   return (
     <div className="space-y-6">
@@ -160,7 +155,7 @@ export default function CommunicationPage() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleAiDraftMessage} 
-                disabled={isAiDrafting || !selectedAnnForAIDraft || noChannelsSelectedForAIDraft}
+                disabled={isAiDrafting || !selectedAnnForAIDraft || noChannelsSelected}
               >
                 {isAiDrafting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Suggest with AI
@@ -219,8 +214,11 @@ export default function CommunicationPage() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-          <Button variant="outline" disabled={isSending || isAiDrafting}>Schedule (Future)</Button>
-          <Button onClick={handleSend} disabled={isSending || isAiDrafting || (!selectedAnnouncementId && !message) || selectedCategories.length === 0 || noChannelsSelectedForAIDraft}>
+          <Button variant="outline" disabled={isSending || isAiDrafting || canSubmit}>
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Schedule (Future)
+          </Button>
+          <Button onClick={handleSend} disabled={isSending || isAiDrafting || canSubmit}>
             {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Send Now
           </Button>
