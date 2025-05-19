@@ -25,6 +25,7 @@ const announcementSchema = z.object({
   summary: z.string().optional(),
   categories: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
   tags: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
+  status: z.enum(["draft", "published"]),
 });
 
 type AnnouncementFormData = z.infer<typeof announcementSchema>;
@@ -41,8 +42,9 @@ export default function NewAnnouncementPage() {
       content: "",
       imageUrl: "",
       summary: "",
-      categories: "", // Changed from []
-      tags: "",       // Changed from []
+      categories: "", 
+      tags: "",       
+      status: "draft", // Default status
     },
   });
 
@@ -86,13 +88,12 @@ export default function NewAnnouncementPage() {
     }
   };
 
-  const onSubmit: SubmitHandler<AnnouncementFormData> = async (data) => {
+  const handleFormSubmit = async (data: AnnouncementFormData, submitStatus: 'draft' | 'published') => {
     setIsSubmitting(true);
     try {
-      // data.categories and data.tags are now string[] due to Zod transform
       const announcementData: Omit<Announcement, "id" | "createdAt" | "updatedAt"> = {
         ...data,
-        status: "draft", // Default to draft
+        status: submitStatus,
       };
       const result = await createAnnouncement(announcementData);
 
@@ -104,10 +105,10 @@ export default function NewAnnouncementPage() {
         });
       } else {
         toast({
-          title: "Announcement Created",
-          description: `"${result.title}" has been saved as a draft.`,
+          title: submitStatus === 'published' ? "Announcement Published" : "Announcement Saved",
+          description: `"${result.title}" has been successfully ${submitStatus === 'published' ? 'published' : 'saved as a draft'}.`,
         });
-        form.reset(); // Resets to defaultValues (strings for categories/tags)
+        form.reset(); 
       }
     } catch (error) {
       toast({
@@ -125,8 +126,9 @@ export default function NewAnnouncementPage() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Create New Announcement</h2>
+      {/* Removed onSubmit from form tag, using button clicks to trigger submit with status */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Card>
@@ -190,7 +192,7 @@ export default function NewAnnouncementPage() {
                   <CardDescription>Generate summary, categories, and tags using AI.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button type="button" onClick={handleAiSuggest} disabled={isAiLoading} className="w-full">
+                  <Button type="button" onClick={handleAiSuggest} disabled={isAiLoading || isSubmitting} className="w-full">
                     {isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                     Suggest Metadata
                   </Button>
@@ -210,12 +212,12 @@ export default function NewAnnouncementPage() {
                   <FormField
                     control={form.control}
                     name="categories"
-                    render={({ field }) => ( // field.value is now a string
+                    render={({ field }) => ( 
                       <FormItem>
                         <FormLabel>AI Categories</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g., Urbanisme, Événement" {...field} 
-                           value={field.value || ""} // Simplified value prop
+                           value={field.value || ""} 
                           />
                         </FormControl>
                         <FormDescription>Comma-separated values.</FormDescription>
@@ -226,12 +228,12 @@ export default function NewAnnouncementPage() {
                   <FormField
                     control={form.control}
                     name="tags"
-                    render={({ field }) => ( // field.value is now a string
+                    render={({ field }) => ( 
                       <FormItem>
                         <FormLabel>AI Tags</FormLabel>
                         <FormControl>
                            <Input placeholder="e.g., réunion, mairie, projet" {...field} 
-                            value={field.value || ""} // Simplified value prop
+                            value={field.value || ""} 
                            />
                         </FormControl>
                         <FormDescription>Comma-separated values.</FormDescription>
@@ -243,14 +245,28 @@ export default function NewAnnouncementPage() {
               </Card>
                <Card>
                 <CardHeader>
-                    <CardTitle>Publish</CardTitle>
+                    <CardTitle>Actions</CardTitle> {/* Changed title */}
                 </CardHeader>
-                <CardFooter>
-                    <Button type="submit" disabled={isSubmitting} className="w-full">
+                <CardFooter className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={form.handleSubmit(data => handleFormSubmit(data, "draft"))} 
+                      disabled={isSubmitting || isAiLoading} 
+                      className="w-full"
+                    >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save as Draft
                     </Button>
-                    {/* Add a "Publish" button later if needed */}
+                    <Button 
+                      type="button" 
+                      onClick={form.handleSubmit(data => handleFormSubmit(data, "published"))} 
+                      disabled={isSubmitting || isAiLoading} 
+                      className="w-full"
+                    >
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Publish
+                    </Button>
                 </CardFooter>
                </Card>
             </div>
