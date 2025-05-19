@@ -101,7 +101,7 @@ export default function CommunicationPage() {
 
     const sentChannels: string[] = [];
     if (sendSms) sentChannels.push("SMS");
-    if (sendPush) sentChannels.push("Push Notification"); // Changed "Push" to "Push Notification"
+    if (sendPush) sentChannels.push("Push Notification");
     if (sendWhatsapp) sentChannels.push("WhatsApp");
     
     toast({
@@ -121,6 +121,7 @@ export default function CommunicationPage() {
   };
   
   const selectedAnnForAIDraft = announcements.find(ann => ann.id === selectedAnnouncementId);
+  const noChannelsSelectedForAIDraft = !sendSms && !sendPush && !sendWhatsapp;
 
   return (
     <div className="space-y-6">
@@ -136,10 +137,10 @@ export default function CommunicationPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <Label htmlFor="announcement-select">Select Announcement (Optional)</Label>
+            <Label htmlFor="announcement-select">Select Published Announcement (Optional)</Label>
             <Select value={selectedAnnouncementId} onValueChange={setSelectedAnnouncementId}>
               <SelectTrigger id="announcement-select">
-                <SelectValue placeholder="Choose an existing announcement" />
+                <SelectValue placeholder="Choose an existing published announcement" />
               </SelectTrigger>
               <SelectContent>
                 {announcements.map((ann) => (
@@ -159,7 +160,7 @@ export default function CommunicationPage() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleAiDraftMessage} 
-                disabled={isAiDrafting || !selectedAnnForAIDraft || (!sendSms && !sendPush && !sendWhatsapp)}
+                disabled={isAiDrafting || !selectedAnnForAIDraft || noChannelsSelectedForAIDraft}
               >
                 {isAiDrafting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Suggest with AI
@@ -219,7 +220,7 @@ export default function CommunicationPage() {
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
           <Button variant="outline" disabled={isSending || isAiDrafting}>Schedule (Future)</Button>
-          <Button onClick={handleSend} disabled={isSending || isAiDrafting}>
+          <Button onClick={handleSend} disabled={isSending || isAiDrafting || (!selectedAnnouncementId && !message) || selectedCategories.length === 0 || noChannelsSelectedForAIDraft}>
             {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Send Now
           </Button>
