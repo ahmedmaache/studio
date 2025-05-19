@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getAISuggestions } from "@/lib/actions/ai";
 import { getAnnouncementById, updateAnnouncement } from "@/lib/actions/announcements";
@@ -26,6 +27,7 @@ const announcementSchema = z.object({
   summary: z.string().optional(),
   categories: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
   tags: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
+  status: z.enum(["draft", "published"]),
 });
 
 type AnnouncementFormData = z.infer<typeof announcementSchema>;
@@ -48,8 +50,9 @@ export default function EditAnnouncementPage() {
       content: "",
       imageUrl: "",
       summary: "",
-      categories: "", // Changed from []
-      tags: "",       // Changed from []
+      categories: "", 
+      tags: "",       
+      status: "draft",
     },
   });
 
@@ -65,10 +68,11 @@ export default function EditAnnouncementPage() {
               content: data.content || "",
               imageUrl: data.imageUrl || "",
               summary: data.summary || "",
-              categories: data.categories ? data.categories.join(', ') : "", // Join array to string
-              tags: data.tags ? data.tags.join(', ') : "",                   // Join array to string
+              categories: data.categories ? data.categories.join(', ') : "",
+              tags: data.tags ? data.tags.join(', ') : "",
+              status: data.status || "draft",
             };
-            form.reset(formDataToReset); // form.reset now gets strings for categories/tags
+            form.reset(formDataToReset);
             setAnnouncementNotFound(false);
           } else {
             setAnnouncementNotFound(true);
@@ -125,9 +129,8 @@ export default function EditAnnouncementPage() {
   const onSubmit: SubmitHandler<AnnouncementFormData> = async (data) => {
     setIsSubmitting(true);
     try {
-      // data.categories and data.tags are now string[] due to Zod transform
       const announcementUpdateData: Partial<Omit<Announcement, "id" | "createdAt" | "updatedAt">> = {
-        ...data,
+        ...data, // data already includes categories and tags as string[] due to Zod transform
       };
       const result = await updateAnnouncement(announcementId, announcementUpdateData);
       if ("error" in result) {
@@ -232,6 +235,27 @@ export default function EditAnnouncementPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="published">Published</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -263,12 +287,12 @@ export default function EditAnnouncementPage() {
                   <FormField
                     control={form.control}
                     name="categories"
-                    render={({ field }) => ( // field.value is now a string
+                    render={({ field }) => ( 
                       <FormItem>
                         <FormLabel>AI Categories</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g., Urbanisme, Événement" {...field} 
-                           value={field.value || ""} // Simplified value prop
+                           value={field.value || ""} 
                           />
                         </FormControl>
                         <FormDescription>Comma-separated values.</FormDescription>
@@ -279,12 +303,12 @@ export default function EditAnnouncementPage() {
                   <FormField
                     control={form.control}
                     name="tags"
-                    render={({ field }) => ( // field.value is now a string
+                    render={({ field }) => ( 
                       <FormItem>
                         <FormLabel>AI Tags</FormLabel>
                         <FormControl>
                            <Input placeholder="e.g., réunion, mairie, projet" {...field} 
-                            value={field.value || ""} // Simplified value prop
+                            value={field.value || ""} 
                            />
                         </FormControl>
                         <FormDescription>Comma-separated values.</FormDescription>

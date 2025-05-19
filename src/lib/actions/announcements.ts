@@ -45,6 +45,9 @@ export async function createAnnouncement(data: Omit<Announcement, "id" | "create
       categories: data.categories || [],
       tags: data.tags || [],
     };
+    if (newAnnouncement.status === 'published') {
+      newAnnouncement.publishedAt = new Date();
+    }
     announcements.unshift(newAnnouncement); // Add to the beginning of the list
     console.log("Announcement created:", newAnnouncement);
     revalidatePath("/admin/announcements");
@@ -73,11 +76,23 @@ export async function updateAnnouncement(id: string, data: Partial<Omit<Announce
       return { error: "Announcement not found." };
     }
     const existingAnnouncement = announcements[announcementIndex];
-    const updatedAnnouncement: Announcement = {
-      ...existingAnnouncement,
+    
+    const updatedAnnouncementData: Partial<Announcement> = {
       ...data,
       updatedAt: new Date(),
     };
+
+    if (data.status === "published" && existingAnnouncement.status !== "published") {
+      updatedAnnouncementData.publishedAt = new Date();
+    }
+    // If changing status from published to draft, we could clear publishedAt or keep it as the first publish date.
+    // For simplicity, we'll keep it. If `data.status` is 'draft', `publishedAt` won't be set here unless already present.
+
+    const updatedAnnouncement: Announcement = {
+      ...existingAnnouncement,
+      ...updatedAnnouncementData,
+    };
+    
     announcements[announcementIndex] = updatedAnnouncement;
     console.log("Announcement updated:", updatedAnnouncement);
     revalidatePath("/admin/announcements");
