@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from "react";
@@ -9,13 +10,12 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarTrigger,
-  useSidebar,
+  useSidebar, // Import useSidebar
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { UserNav } from "@/components/layout/user-nav";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut } from "lucide-react";
 
@@ -34,7 +34,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <SidebarNav />
         </SidebarContent>
         <SidebarFooter className="p-2">
-          {/* Example User Profile in Footer - adjust as needed */}
           <div className="flex items-center gap-2 p-2 rounded-md hover:bg-sidebar-accent transition-colors">
             <Avatar className="h-8 w-8">
               <AvatarImage src="https://placehold.co/40x40.png" alt="Admin" data-ai-hint="user avatar"/>
@@ -71,10 +70,10 @@ function ConditionalLogo() {
   if (state === "collapsed") {
     return (
       <div className="flex justify-center items-center h-full">
+         {/* Simple building icon for collapsed state */}
          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 16.5A2.5 2.5 0 0 0 4.5 19H8"/><path d="M16 19h3.5a2.5 2.5 0 0 0 2.5-2.5V15"/><path d="M8 19h8"/><path d="M12 4v8"/><path d="m9 9 3 3 3-3"/></svg>
       </div>
     );
   }
   return <Logo />;
 }
-
