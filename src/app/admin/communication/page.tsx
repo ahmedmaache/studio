@@ -101,7 +101,7 @@ export default function CommunicationPage() {
 
     const sentChannels: string[] = [];
     if (sendSms) sentChannels.push("SMS");
-    if (sendPush) sentChannels.push("Push");
+    if (sendPush) sentChannels.push("Push Notification"); // Changed "Push" to "Push Notification"
     if (sendWhatsapp) sentChannels.push("WhatsApp");
     
     toast({
