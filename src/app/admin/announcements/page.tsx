@@ -155,7 +155,7 @@ export default function AnnouncementsListPage() {
                     <TableCell>
                       <div className="w-16 h-12 rounded-md overflow-hidden relative border">
                         <Image 
-                          src={announcement.imageUrl || "https://placehold.co/100x80.png"} 
+                          src={announcement.imageUrl || "https://placehold.co/64x48.png"} 
                           alt={announcement.title} 
                           layout="fill" 
                           objectFit="cover"

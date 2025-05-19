@@ -156,7 +156,7 @@ export default function EventsListPage() {
                     <TableCell>
                       <div className="w-16 h-12 rounded-md overflow-hidden relative border">
                         <Image 
-                          src={event.imageUrl || "https://placehold.co/100x80.png"} 
+                          src={event.imageUrl || "https://placehold.co/64x48.png"} 
                           alt={event.title} 
                           layout="fill" 
                           objectFit="cover"
