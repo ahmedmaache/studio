@@ -170,7 +170,9 @@ export default function AnnouncementsListPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
-                      {Array.isArray(announcement.categories) ? announcement.categories.join(", ") : announcement.categories || "N/A"}
+                      {announcement.categories && announcement.categories.length > 0 
+                        ? announcement.categories.join(", ") 
+                        : "N/A"}
                     </TableCell>
                     <TableCell>
                       {new Date(announcement.updatedAt).toLocaleDateString()}

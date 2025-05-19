@@ -1,13 +1,21 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Megaphone, FileText, Users, Library } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { List, Megaphone, FileText, Users, Library, ExternalLink } from "lucide-react";
 import { getAnnouncements } from "@/lib/actions/announcements";
+import Link from "next/link";
+import type { Announcement } from "@/types";
 
 export default async function DashboardPage() {
-  const allAnnouncements = await getAnnouncements();
+  const allAnnouncements = await getAnnouncements(); // Already sorted by createdAt desc in action
   const publishedAnnouncementsCount = allAnnouncements.filter(ann => ann.status === 'published').length;
   const draftAnnouncementsCount = allAnnouncements.filter(ann => ann.status === 'draft').length;
   const totalAnnouncementsCount = allAnnouncements.length;
+
+  // For recent activity, sort by updatedAt
+  const recentAnnouncements = [...allAnnouncements]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -22,9 +30,6 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{publishedAnnouncementsCount}</div>
-            {/* <p className="text-xs text-muted-foreground">
-              +10% from last month
-            </p> */}
           </CardContent>
         </Card>
          <Card>
@@ -36,9 +41,6 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{draftAnnouncementsCount}</div>
-            {/* <p className="text-xs text-muted-foreground">
-              +2 new today
-            </p> */}
           </CardContent>
         </Card>
         <Card>
@@ -50,9 +52,6 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalAnnouncementsCount}</div>
-            {/* <p className="text-xs text-muted-foreground">
-              Managed in the system
-            </p> */}
           </CardContent>
         </Card>
         <Card>
@@ -71,14 +70,36 @@ export default async function DashboardPage() {
         </Card>
       </div>
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
+            <List className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">No recent activity to display. More statistics and features will be available soon.</p>
+          {recentAnnouncements.length > 0 ? (
+            <ul className="space-y-3">
+              {recentAnnouncements.map((announcement: Announcement) => (
+                <li key={announcement.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-md hover:bg-secondary">
+                  <div>
+                    <p className="font-medium text-sm">{announcement.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Last updated: {new Date(announcement.updatedAt).toLocaleDateString()}
+                       {announcement.status === "draft" && <span className="ml-2 text-amber-600">(Draft)</span>}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/admin/announcements/edit/${announcement.id}`}>
+                      View/Edit
+                      <ExternalLink className="ml-2 h-3 w-3" />
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">No recent activity to display. Start by creating or updating an announcement.</p>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
