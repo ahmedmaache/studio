@@ -1,11 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Megaphone, FileText, Users } from "lucide-react";
 
-export default function DashboardPage() {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Megaphone, FileText, Users, Library } from "lucide-react";
+import { getAnnouncements } from "@/lib/actions/announcements";
+
+export default async function DashboardPage() {
+  const allAnnouncements = await getAnnouncements();
+  const publishedAnnouncementsCount = allAnnouncements.filter(ann => ann.status === 'published').length;
+  const draftAnnouncementsCount = allAnnouncements.filter(ann => ann.status === 'draft').length;
+  const totalAnnouncementsCount = allAnnouncements.length;
+
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -14,24 +21,38 @@ export default function DashboardPage() {
             <Megaphone className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">125</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold">{publishedAnnouncementsCount}</div>
+            {/* <p className="text-xs text-muted-foreground">
               +10% from last month
-            </p>
+            </p> */}
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Draft Announcements
+            </CardTitle>
+            <FileText className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{draftAnnouncementsCount}</div>
+            {/* <p className="text-xs text-muted-foreground">
+              +2 new today
+            </p> */}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Pending Requests
+              Total Announcements
             </CardTitle>
-            <FileText className="h-5 w-5 text-muted-foreground" />
+            <Library className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">32</div>
-            <p className="text-xs text-muted-foreground">
-              +5 new today
-            </p>
+            <div className="text-2xl font-bold">{totalAnnouncementsCount}</div>
+            {/* <p className="text-xs text-muted-foreground">
+              Managed in the system
+            </p> */}
           </CardContent>
         </Card>
         <Card>
@@ -44,7 +65,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">1,580</div>
             <p className="text-xs text-muted-foreground">
-              +50 this week
+              (Static Data)
             </p>
           </CardContent>
         </Card>

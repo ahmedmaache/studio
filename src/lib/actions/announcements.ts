@@ -49,6 +49,7 @@ export async function createAnnouncement(data: Omit<Announcement, "id" | "create
     console.log("Announcement created:", newAnnouncement);
     revalidatePath("/admin/announcements");
     revalidatePath("/admin/announcements/new");
+    revalidatePath("/admin/dashboard"); // Revalidate dashboard after creating
     return newAnnouncement;
   } catch (error) {
     console.error("Error creating announcement:", error);
@@ -81,10 +82,27 @@ export async function updateAnnouncement(id: string, data: Partial<Omit<Announce
     console.log("Announcement updated:", updatedAnnouncement);
     revalidatePath("/admin/announcements");
     revalidatePath(`/admin/announcements/edit/${id}`);
-    // revalidatePath(`/admin/announcements/${id}`); // If there was a details page
+    revalidatePath("/admin/dashboard"); // Revalidate dashboard after updating
     return updatedAnnouncement;
   } catch (error) {
     console.error("Error updating announcement:", error);
     return { error: "Failed to update announcement." };
+  }
+}
+
+export async function deleteAnnouncement(id: string): Promise<{ success: boolean; error?: string, message?: string }> {
+  try {
+    const initialLength = announcements.length;
+    announcements = announcements.filter(ann => ann.id !== id);
+    if (announcements.length === initialLength) {
+      return { success: false, error: "Announcement not found." };
+    }
+    console.log("Announcement deleted:", id);
+    revalidatePath("/admin/announcements");
+    revalidatePath("/admin/dashboard"); // Revalidate dashboard after deleting
+    return { success: true, message: "Announcement deleted successfully." };
+  } catch (error) {
+    console.error("Error deleting announcement:", error);
+    return { success: false, error: "Failed to delete announcement." };
   }
 }
