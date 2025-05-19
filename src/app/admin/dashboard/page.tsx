@@ -164,11 +164,7 @@ export default async function DashboardPage() {
                 <BarChart3 className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex-grow flex items-center justify-center">
-              {categoryChartData.length > 0 ? (
-                <AnnouncementsByCategoryChart data={categoryChartData} />
-              ) : (
-                 <p className="text-muted-foreground text-center py-8">No announcements with categories to display in chart.</p>
-              )}
+              <AnnouncementsByCategoryChart data={categoryChartData} />
             </CardContent>
         </Card>
       </div>
