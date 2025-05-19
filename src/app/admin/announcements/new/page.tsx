@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type ReactNode } from "react";
@@ -67,8 +68,8 @@ export default function NewAnnouncementPage() {
         });
       } else {
         form.setValue("summary", result.summary);
-        form.setValue("categories", result.categories as any); // zod transform handles it
-        form.setValue("tags", result.tags as any); // zod transform handles it
+        form.setValue("categories", result.categories.join(', '));
+        form.setValue("tags", result.tags.join(', '));
         toast({
           title: "AI Suggestions Applied",
           description: "Summary, categories, and tags have been populated.",
