@@ -1,3 +1,4 @@
+
 import { getAnnouncements } from "@/lib/actions/announcements";
 import type { Announcement } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -61,7 +62,7 @@ export default async function AnnouncementsListPage() {
                   <TableHead>Title</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Categories</TableHead>
-                  <TableHead>Published</TableHead>
+                  <TableHead>Last Updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -82,20 +83,22 @@ export default async function AnnouncementsListPage() {
                     <TableCell className="font-medium">{announcement.title}</TableCell>
                     <TableCell>
                       <Badge variant={announcement.status === "published" ? "default" : "secondary"}>
-                        {announcement.status}
+                        {announcement.status.charAt(0).toUpperCase() + announcement.status.slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
                       {announcement.categories?.join(", ") || "N/A"}
                     </TableCell>
                     <TableCell>
-                      {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : "Draft"}
+                      {new Date(announcement.updatedAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="mr-2" title="Edit">
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive">
+                    <TableCell className="text-right space-x-1">
+                      <Link href={`/admin/announcements/edit/${announcement.id}`} passHref>
+                        <Button variant="ghost" size="icon" title="Edit">
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Button variant="ghost" size="icon" title="Delete (Not Implemented)" className="text-destructive hover:text-destructive opacity-50 cursor-not-allowed">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>

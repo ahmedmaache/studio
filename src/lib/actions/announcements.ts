@@ -1,3 +1,4 @@
+
 "use server";
 
 import type { Announcement } from "@/types";
@@ -37,7 +38,7 @@ export async function createAnnouncement(data: Omit<Announcement, "id" | "create
   try {
     const newAnnouncement: Announcement = {
       ...data,
-      id: String(Date.now()), // Simple ID generation for mock
+      id: String(Date.now() + Math.random()), // Ensure unique ID
       createdAt: new Date(),
       updatedAt: new Date(),
       status: data.status || 'draft',
@@ -57,9 +58,33 @@ export async function createAnnouncement(data: Omit<Announcement, "id" | "create
 
 export async function getAnnouncements(): Promise<Announcement[]> {
   // In a real app, fetch from database
-  return Promise.resolve(announcements);
+  return Promise.resolve(announcements.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime()));
 }
 
 export async function getAnnouncementById(id: string): Promise<Announcement | undefined> {
   return Promise.resolve(announcements.find(ann => ann.id === id));
+}
+
+export async function updateAnnouncement(id: string, data: Partial<Omit<Announcement, "id" | "createdAt" | "updatedAt">>): Promise<Announcement | { error: string }> {
+  try {
+    const announcementIndex = announcements.findIndex(ann => ann.id === id);
+    if (announcementIndex === -1) {
+      return { error: "Announcement not found." };
+    }
+    const existingAnnouncement = announcements[announcementIndex];
+    const updatedAnnouncement: Announcement = {
+      ...existingAnnouncement,
+      ...data,
+      updatedAt: new Date(),
+    };
+    announcements[announcementIndex] = updatedAnnouncement;
+    console.log("Announcement updated:", updatedAnnouncement);
+    revalidatePath("/admin/announcements");
+    revalidatePath(`/admin/announcements/edit/${id}`);
+    // revalidatePath(`/admin/announcements/${id}`); // If there was a details page
+    return updatedAnnouncement;
+  } catch (error) {
+    console.error("Error updating announcement:", error);
+    return { error: "Failed to update announcement." };
+  }
 }
