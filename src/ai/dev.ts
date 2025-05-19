@@ -1,4 +1,6 @@
+
 import { config } from 'dotenv';
 config();
 
 import '@/ai/flows/suggest-content-metadata.ts';
+import '@/ai/flows/draft-communication-message-flow.ts';
