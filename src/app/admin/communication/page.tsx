@@ -83,26 +83,45 @@ export default function CommunicationPage() {
   };
 
   const handleSend = async () => {
-    // This check is technically redundant if the button is correctly disabled, but good for safety.
     if (!message.trim() || selectedCategories.length === 0 || (!sendSms && !sendPush && !sendWhatsapp)) {
       toast({ title: "Error", description: "Please complete all fields: message, target audience, and at least one channel.", variant: "destructive" });
       return;
     }
 
     setIsSending(true);
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+    // Simulate API call or processing delay
+    await new Promise(resolve => setTimeout(resolve, 1500)); 
 
-    const sentChannels: string[] = [];
-    if (sendSms) sentChannels.push("SMS");
-    if (sendPush) sentChannels.push("Push Notification");
-    if (sendWhatsapp) sentChannels.push("WhatsApp");
+    const channelsUsed: string[] = [];
+    let smsInfo = "";
+
+    if (sendSms) {
+      channelsUsed.push("SMS");
+      // Simulate preparing SMS for the gateway
+      console.log(`SMS for Android Gateway: Target Categories - [${selectedCategories.join(', ')}]. Message: "${message}"`);
+      smsInfo = ` SMS queued for Android Gateway.`;
+    }
+    if (sendWhatsapp) {
+      channelsUsed.push("WhatsApp");
+      // Simulate WhatsApp sending
+      console.log(`WhatsApp message simulated: Target Categories - [${selectedCategories.join(', ')}]. Message: "${message}"`);
+    }
+    if (sendPush) {
+      channelsUsed.push("Push Notification");
+      // Simulate Push Notification sending
+      console.log(`Push Notification simulated: Target Categories - [${selectedCategories.join(', ')}]. Message: "${message}"`);
+    }
     
     toast({
-      title: "Communication Sent (Simulated)",
-      description: `Message: "${message}" sent to citizens subscribed to ${selectedCategories.join(', ')} via ${sentChannels.join(' and ')}.`,
+      title: "Communication Action Triggered (Simulated)",
+      description: `Message for ${selectedCategories.join(', ')} via ${channelsUsed.join(' & ')} has been processed.${smsInfo}`,
     });
     
     setIsSending(false);
+    // Optionally reset some fields after sending
+    // setMessage("");
+    // setSelectedCategories([]);
+    // setSelectedAnnouncementId(undefined);
   };
 
   const handleCategoryChange = (categoryId: string) => {
@@ -114,9 +133,10 @@ export default function CommunicationPage() {
   };
   
   const selectedAnnForAIDraft = announcements.find(ann => ann.id === selectedAnnouncementId);
-  const noChannelsSelected = !sendSms && !sendPush && !sendWhatsapp;
+  const noChannelsSelectedForAIDraft = !sendSms && !sendPush && !sendWhatsapp; // Used specifically for AI draft button
 
-  const canSubmit = !message.trim() || selectedCategories.length === 0 || noChannelsSelected;
+  const canSubmit = !message.trim() || selectedCategories.length === 0 || (!sendSms && !sendPush && !sendWhatsapp);
+
 
   return (
     <div className="space-y-6">
@@ -155,7 +175,7 @@ export default function CommunicationPage() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleAiDraftMessage} 
-                disabled={isAiDrafting || !selectedAnnForAIDraft || noChannelsSelected}
+                disabled={isAiDrafting || !selectedAnnForAIDraft || noChannelsSelectedForAIDraft}
               >
                 {isAiDrafting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Suggest with AI
@@ -227,4 +247,3 @@ export default function CommunicationPage() {
     </div>
   );
 }
-
