@@ -1,20 +1,25 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { List, Megaphone, FileText, Users, Library, ExternalLink, BarChart3 } from "lucide-react";
+import { List, Megaphone, FileText, Users, Library, ExternalLink, BarChart3, CalendarDays } from "lucide-react";
 import { getAnnouncements } from "@/lib/actions/announcements";
+import { getEvents } from "@/lib/actions/events";
+import { getDecisions } from "@/lib/actions/decisions";
 import Link from "next/link";
-import type { Announcement } from "@/types";
+import type { Announcement, Event, Decision } from "@/types";
 import { availableCategories } from "@/types";
 import { AnnouncementsByCategoryChart } from "@/components/admin/charts/announcements-by-category-chart";
 
 export default async function DashboardPage() {
-  const allAnnouncements = await getAnnouncements(); // Already sorted by createdAt desc in action
-  const publishedAnnouncementsCount = allAnnouncements.filter(ann => ann.status === 'published').length;
-  const draftAnnouncementsCount = allAnnouncements.filter(ann => ann.status === 'draft').length;
-  const totalAnnouncementsCount = allAnnouncements.length;
+  const allAnnouncements = await getAnnouncements();
+  const allEvents = await getEvents();
+  const allDecisions = await getDecisions();
 
-  // For recent activity, sort by updatedAt
+  const totalAnnouncementsCount = allAnnouncements.length;
+  const totalEventsCount = allEvents.length;
+  const totalDecisionsCount = allDecisions.length;
+
+  // For recent activity, sort by updatedAt (currently only announcements)
   const recentAnnouncements = [...allAnnouncements]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
@@ -23,7 +28,6 @@ export default async function DashboardPage() {
   const announcementsByCategoryCount: { [key: string]: number } = {};
   allAnnouncements.forEach(ann => {
     ann.categories?.forEach(categoryName => {
-      // Ensure we only count valid categories as defined in availableCategories
       if (availableCategories.some(c => c.name === categoryName)) {
         announcementsByCategoryCount[categoryName] = (announcementsByCategoryCount[categoryName] || 0) + 1;
       }
@@ -35,8 +39,8 @@ export default async function DashboardPage() {
       name: category.name,
       count: announcementsByCategoryCount[category.name] || 0,
     }))
-    .filter(item => item.count > 0) // Only include categories with one or more announcements for a cleaner chart
-    .sort((a,b) => b.count - a.count); // Sort by count descending
+    .filter(item => item.count > 0) 
+    .sort((a,b) => b.count - a.count);
 
   return (
     <div className="space-y-6">
@@ -45,34 +49,34 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Published Announcements
+              Total Announcements
             </CardTitle>
             <Megaphone className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{publishedAnnouncementsCount}</div>
+            <div className="text-2xl font-bold">{totalAnnouncementsCount}</div>
           </CardContent>
         </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Draft Announcements
+              Total Events
             </CardTitle>
-            <FileText className="h-5 w-5 text-muted-foreground" />
+            <CalendarDays className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{draftAnnouncementsCount}</div>
+            <div className="text-2xl font-bold">{totalEventsCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Announcements
+              Total Decisions
             </CardTitle>
-            <Library className="h-5 w-5 text-muted-foreground" />
+            <FileText className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalAnnouncementsCount}</div>
+            <div className="text-2xl font-bold">{totalDecisionsCount}</div>
           </CardContent>
         </Card>
         <Card>
@@ -139,4 +143,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
