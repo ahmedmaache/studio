@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -15,6 +16,7 @@ import {
   Users,
   Send,
   BellRing,
+  CalendarDays,
 } from "lucide-react";
 
 const navItems = [
@@ -35,6 +37,12 @@ const navItems = [
     icon: <PlusSquare />,
     label: "New Announcement",
     tooltip: "Create Announcement",
+  },
+  {
+    href: "/admin/events",
+    icon: <CalendarDays />,
+    label: "Events",
+    tooltip: "Manage Events",
   },
   {
     href: "/admin/subscriptions",

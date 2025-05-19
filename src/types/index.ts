@@ -1,3 +1,4 @@
+
 export interface Announcement {
   id: string;
   title: string;
@@ -5,6 +6,19 @@ export interface Announcement {
   summary?: string;
   categories?: string[];
   tags?: string[];
+  status: 'draft' | 'published';
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+  imageUrl?: string;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  eventDate: Date;
+  location: string;
   status: 'draft' | 'published';
   createdAt: Date;
   updatedAt: Date;
