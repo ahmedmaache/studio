@@ -83,13 +83,13 @@ export default function SubscriptionsPage() {
                   </TableCell>
                   <TableCell>
                     {sub.prefersSms ? 
-                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Enabled</Badge> : 
-                      <Badge variant="secondary">Disabled</Badge>}
+                      <Badge variant="default">Enabled</Badge> : 
+                      <Badge variant="outline">Disabled</Badge>}
                   </TableCell>
                   <TableCell>
                     {sub.prefersPush ? 
-                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Enabled</Badge> : 
-                      <Badge variant="secondary">Disabled</Badge>}
+                      <Badge variant="default">Enabled</Badge> : 
+                      <Badge variant="outline">Disabled</Badge>}
                   </TableCell>
                 </TableRow>
               ))}
