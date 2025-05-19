@@ -13,9 +13,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getAISuggestions } from "@/lib/actions/ai";
+import { getAISuggestions, getAIGeneratedImage } from "@/lib/actions/ai";
 import { getAnnouncementById, updateAnnouncement } from "@/lib/actions/announcements";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import type { Announcement } from "@/types";
 import Link from "next/link";
@@ -23,7 +23,7 @@ import Link from "next/link";
 const announcementSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
   content: z.string().min(20, "Content must be at least 20 characters long."),
-  imageUrl: z.string().url("Image URL must be a valid URL.").optional().or(z.literal("")),
+  imageUrl: z.string().url("Image URL must be a valid URL (Data URIs are also valid).").optional().or(z.literal("")),
   summary: z.string().optional(),
   categories: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
   tags: z.string().optional().transform(val => val ? val.split(',').map(s => s.trim()).filter(Boolean) : []),
@@ -39,7 +39,8 @@ export default function EditAnnouncementPage() {
   const announcementId = params.id as string;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isAiMetadataLoading, setIsAiMetadataLoading] = useState(false);
+  const [isAiImageLoading, setIsAiImageLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [announcementNotFound, setAnnouncementNotFound] = useState(false);
 
@@ -98,7 +99,7 @@ export default function EditAnnouncementPage() {
     }
   }, [announcementId, form, toast]);
 
-  const handleAiSuggest = async () => {
+  const handleAiSuggestMetadata = async () => {
     const contentValue = form.getValues("content");
     if (!contentValue || contentValue.trim().length < 20) {
       toast({
@@ -108,7 +109,7 @@ export default function EditAnnouncementPage() {
       });
       return;
     }
-    setIsAiLoading(true);
+    setIsAiMetadataLoading(true);
     try {
       const result = await getAISuggestions({ content: contentValue });
       if ("error" in result) {
@@ -122,7 +123,33 @@ export default function EditAnnouncementPage() {
     } catch (error) {
       toast({ title: "Error", description: "Could not fetch AI suggestions.", variant: "destructive" });
     } finally {
-      setIsAiLoading(false);
+      setIsAiMetadataLoading(false);
+    }
+  };
+
+  const handleAiGenerateImage = async () => {
+    const titleValue = form.getValues("title");
+     if (!titleValue || titleValue.trim().length < 5) {
+      toast({
+        title: "Title too short",
+        description: "Please provide a more descriptive title (at least 5 characters) for AI image generation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsAiImageLoading(true);
+    try {
+      const result = await getAIGeneratedImage({ prompt: `Generate a visual representation for an announcement titled: "${titleValue}". Focus on public information, community, or official government communication themes.` });
+      if ("error" in result) {
+        toast({ title: "AI Image Generation Error", description: result.error, variant: "destructive" });
+      } else {
+        form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
+        toast({ title: "AI Image Generated", description: "Image URL has been populated with the AI-generated image." });
+      }
+    } catch (error) {
+        toast({ title: "Error", description: "Could not generate AI image.", variant: "destructive" });
+    } finally {
+        setIsAiImageLoading(false);
     }
   };
 
@@ -130,7 +157,7 @@ export default function EditAnnouncementPage() {
     setIsSubmitting(true);
     try {
       const announcementUpdateData: Partial<Omit<Announcement, "id" | "createdAt" | "updatedAt">> = {
-        ...data, // data already includes categories and tags as string[] due to Zod transform
+        ...data, 
       };
       const result = await updateAnnouncement(announcementId, announcementUpdateData);
       if ("error" in result) {
@@ -222,9 +249,21 @@ export default function EditAnnouncementPage() {
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Image URL (Optional)</FormLabel>
+                        <div className="flex justify-between items-center">
+                          <FormLabel>Image URL (Optional)</FormLabel>
+                           <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleAiGenerateImage}
+                            disabled={isAiImageLoading || isAiMetadataLoading || isSubmitting}
+                          >
+                            {isAiImageLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
+                            Generate with AI
+                          </Button>
+                        </div>
                         <FormControl>
-                          <Input placeholder="https://example.com/image.png" {...field} />
+                           <Input placeholder="https://example.com/image.png or AI-generated" {...field} />
                         </FormControl>
                         {currentImageUrl && (
                           <div className="mt-2 rounded-md overflow-hidden border aspect-video max-w-sm relative">
@@ -267,8 +306,8 @@ export default function EditAnnouncementPage() {
                   <CardDescription>Generate or update summary, categories, and tags using AI.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button type="button" onClick={handleAiSuggest} disabled={isAiLoading || isSubmitting} className="w-full">
-                    {isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  <Button type="button" onClick={handleAiSuggestMetadata} disabled={isAiMetadataLoading || isSubmitting || isAiImageLoading} className="w-full">
+                    {isAiMetadataLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                     Suggest Metadata
                   </Button>
                   <FormField
@@ -323,7 +362,7 @@ export default function EditAnnouncementPage() {
                     <CardTitle>Save Changes</CardTitle>
                 </CardHeader>
                 <CardFooter>
-                    <Button type="submit" disabled={isSubmitting || isAiLoading} className="w-full">
+                    <Button type="submit" disabled={isSubmitting || isAiMetadataLoading || isAiImageLoading} className="w-full">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes
                     </Button>

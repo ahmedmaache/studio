@@ -3,6 +3,7 @@
 
 import { suggestContentMetadata, type SuggestContentMetadataInput, type SuggestContentMetadataOutput } from "@/ai/flows/suggest-content-metadata";
 import { draftCommunicationMessage, type DraftCommunicationMessageInput, type DraftCommunicationMessageOutput } from "@/ai/flows/draft-communication-message-flow";
+import { generateImageFromPrompt, type GenerateImageInput, type GenerateImageOutput } from "@/ai/flows/generate-image-flow";
 
 export async function getAISuggestions(input: SuggestContentMetadataInput): Promise<SuggestContentMetadataOutput | { error: string }> {
   try {
@@ -30,5 +31,22 @@ export async function getAIDraftedMessage(input: DraftCommunicationMessageInput)
   } catch (error) {
     console.error("Error getting AI drafted message:", error);
     return { error: "Failed to get AI drafted message. Please try again." };
+  }
+}
+
+export async function getAIGeneratedImage(input: GenerateImageInput): Promise<GenerateImageOutput | { error: string }> {
+  try {
+    if (!input.prompt || input.prompt.trim().length < 3) {
+      return { error: "Prompt is too short to generate a meaningful image." };
+    }
+    const result = await generateImageFromPrompt(input);
+    return result;
+  } catch (error) {
+    console.error("Error generating AI image:", error);
+    // Check if the error is from Genkit about model capabilities
+    if (error instanceof Error && error.message.includes("IMAGE modality is not supported")) {
+        return { error: "The configured AI model does not support image generation. Please check model settings." };
+    }
+    return { error: "Failed to generate AI image. Please try again." };
   }
 }
