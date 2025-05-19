@@ -208,9 +208,9 @@ export default function NewDecisionPage() {
                     <FormItem>
                       <FormLabel>Categories (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Arrêté, Délibération, Urbanisme" {...field} value={field.value || ""} />
+                        <Input placeholder="e.g., Urbanisme, Transport, Santé Publique" {...field} value={field.value || ""} />
                       </FormControl>
-                      <FormDescription>Comma-separated values.</FormDescription>
+                      <FormDescription>Comma-separated values. Use thematic categories.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

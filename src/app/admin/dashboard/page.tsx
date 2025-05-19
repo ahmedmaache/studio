@@ -10,6 +10,15 @@ import type { Announcement, Event, Decision } from "@/types";
 import { availableCategories } from "@/types";
 import { AnnouncementsByCategoryChart } from "@/components/admin/charts/announcements-by-category-chart";
 
+interface RecentActivityItem {
+  id: string;
+  title: string;
+  updatedAt: Date;
+  status: 'draft' | 'published';
+  type: 'Announcement' | 'Event' | 'Decision';
+  editUrl: string;
+}
+
 export default async function DashboardPage() {
   const allAnnouncements = await getAnnouncements();
   const allEvents = await getEvents();
@@ -19,15 +28,38 @@ export default async function DashboardPage() {
   const totalEventsCount = allEvents.length;
   const totalDecisionsCount = allDecisions.length;
 
-  // For recent activity, sort by updatedAt (currently only announcements)
-  const recentAnnouncements = [...allAnnouncements]
+  const mappedAnnouncements: RecentActivityItem[] = allAnnouncements.map(item => ({
+    ...item,
+    type: 'Announcement',
+    editUrl: `/admin/announcements/edit/${item.id}`,
+  }));
+  const mappedEvents: RecentActivityItem[] = allEvents.map(item => ({
+    ...item,
+    type: 'Event',
+    editUrl: `/admin/events/edit/${item.id}`,
+  }));
+  const mappedDecisions: RecentActivityItem[] = allDecisions.map(item => ({
+    ...item,
+    type: 'Decision',
+    editUrl: `/admin/decisions/edit/${item.id}`,
+  }));
+
+  const combinedActivity: RecentActivityItem[] = [
+    ...mappedAnnouncements,
+    ...mappedEvents,
+    ...mappedDecisions,
+  ];
+
+  const recentActivity = combinedActivity
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
+
 
   // Data for Announcements by Category Chart
   const announcementsByCategoryCount: { [key: string]: number } = {};
   allAnnouncements.forEach(ann => {
     ann.categories?.forEach(categoryName => {
+      // Ensure we only count categories that are in our defined list
       if (availableCategories.some(c => c.name === categoryName)) {
         announcementsByCategoryCount[categoryName] = (announcementsByCategoryCount[categoryName] || 0) + 1;
       }
@@ -39,8 +71,8 @@ export default async function DashboardPage() {
       name: category.name,
       count: announcementsByCategoryCount[category.name] || 0,
     }))
-    .filter(item => item.count > 0) 
-    .sort((a,b) => b.count - a.count);
+    .filter(item => item.count > 0) // Only include categories with data
+    .sort((a,b) => b.count - a.count); // Sort for better chart readability
 
   return (
     <div className="space-y-6">
@@ -101,19 +133,19 @@ export default async function DashboardPage() {
                 <List className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            {recentAnnouncements.length > 0 ? (
+            {recentActivity.length > 0 ? (
                 <ul className="space-y-3">
-                {recentAnnouncements.map((announcement: Announcement) => (
-                    <li key={announcement.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-md hover:bg-secondary">
+                {recentActivity.map((item: RecentActivityItem) => (
+                    <li key={`${item.type}-${item.id}`} className="flex items-center justify-between p-3 bg-secondary/50 rounded-md hover:bg-secondary">
                     <div>
-                        <p className="font-medium text-sm">{announcement.title}</p>
+                        <p className="font-medium text-sm">{item.title} <span className="text-xs text-muted-foreground">({item.type})</span></p>
                         <p className="text-xs text-muted-foreground">
-                        Last updated: {new Date(announcement.updatedAt).toLocaleDateString()}
-                        {announcement.status === "draft" && <span className="ml-2 text-amber-600">(Draft)</span>}
+                        Last updated: {new Date(item.updatedAt).toLocaleDateString()}
+                        {item.status === "draft" && <span className="ml-2 text-amber-600">(Draft)</span>}
                         </p>
                     </div>
                     <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/announcements/edit/${announcement.id}`}>
+                        <Link href={item.editUrl}>
                         View/Edit
                         <ExternalLink className="ml-2 h-3 w-3" />
                         </Link>
@@ -122,7 +154,7 @@ export default async function DashboardPage() {
                 ))}
                 </ul>
             ) : (
-                <p className="text-muted-foreground">No recent activity to display. Start by creating or updating an announcement.</p>
+                <p className="text-muted-foreground">No recent activity to display. Start by creating or updating content.</p>
             )}
             </CardContent>
         </Card>
@@ -143,3 +175,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

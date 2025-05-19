@@ -103,7 +103,7 @@ export default function EditDecisionPage() {
     setIsSubmitting(true);
     try {
       const decisionUpdateData: Partial<Omit<Decision, "id" | "createdAt" | "updatedAt">> = {
-        ...data, // data already includes categories and tags as string[] due to Zod transform
+        ...data, 
       };
       const result = await updateDecision(decisionId, decisionUpdateData);
       if ("error" in result) {
@@ -263,11 +263,11 @@ export default function EditDecisionPage() {
                     <FormItem>
                       <FormLabel>Categories (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Arrêté, Délibération" {...field} 
+                        <Input placeholder="e.g., Urbanisme, Transport, Santé Publique" {...field} 
                          value={field.value || ""} 
                         />
                       </FormControl>
-                      <FormDescription>Comma-separated values.</FormDescription>
+                      <FormDescription>Comma-separated values. Use thematic categories.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

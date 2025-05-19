@@ -31,7 +31,7 @@ export interface Decision {
   title: string;
   content: string;
   summary?: string;
-  categories?: string[]; // e.g., 'Arrêté Municipal', 'Délibération du Conseil'
+  categories?: string[]; // e.g., 'Urbanisme', 'Transport', 'Santé Publique' (aligned with available notification categories)
   tags?: string[]; // e.g., 'circulation', 'budget', 'urbanisme'
   status: 'draft' | 'published';
   decisionDate: Date; // Date the decision was made/effective
@@ -75,3 +75,4 @@ export const availableCategories: Category[] = [
   { id: 'culture', name: 'Culture et Loisirs' },
   { id: 'decisions-municipales', name: 'Décisions Municipales'},
 ];
+
