@@ -26,6 +26,22 @@ export interface Event {
   imageUrl?: string;
 }
 
+export interface Decision {
+  id: string;
+  title: string;
+  content: string;
+  summary?: string;
+  categories?: string[]; // e.g., 'Arrêté Municipal', 'Délibération du Conseil'
+  tags?: string[]; // e.g., 'circulation', 'budget', 'urbanisme'
+  status: 'draft' | 'published';
+  decisionDate: Date; // Date the decision was made/effective
+  referenceNumber?: string; // e.g., AM-2024-001
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+  attachmentUrl?: string; // Link to a PDF or document
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -57,4 +73,5 @@ export const availableCategories: Category[] = [
   { id: 'education', name: 'Éducation' },
   { id: 'transport', name: 'Transport' },
   { id: 'culture', name: 'Culture et Loisirs' },
+  { id: 'decisions-municipales', name: 'Décisions Municipales'},
 ];

@@ -17,6 +17,7 @@ import {
   Send,
   BellRing,
   CalendarDays,
+  FileText, // Added for Decisions
 } from "lucide-react";
 
 const navItems = [
@@ -43,6 +44,12 @@ const navItems = [
     icon: <CalendarDays />,
     label: "Events",
     tooltip: "Manage Events",
+  },
+  {
+    href: "/admin/decisions", // New link for Decisions
+    icon: <FileText />,
+    label: "Decisions",
+    tooltip: "Manage Decisions",
   },
   {
     href: "/admin/subscriptions",
