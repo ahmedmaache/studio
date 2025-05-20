@@ -1,112 +1,154 @@
+
+// src/screens/main/SubmitRequestScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext'; // Assuming AuthContext is in this path
-import { createServiceRequest } from '../../api/requestService';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import { requestService, type CreateServiceRequestPayload } from '../../api/requestService';
+import { useNavigation } from '@react-navigation/native';
 
-interface CreateServiceRequestData {
-  requestType: string;
-  description: string;
-  attachments?: string;
-}
+export default function SubmitRequestScreen() {
+  const { userToken } = useAuth();
+  const navigation = useNavigation();
 
-const SubmitRequestScreen: React.FC = () => {
-  const { citizenToken } = useAuth();
   const [requestType, setRequestType] = useState('');
   const [description, setDescription] = useState('');
-  const [attachments, setAttachments] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [attachmentsInput, setAttachmentsInput] = useState(''); // Comma-separated URLs
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!citizenToken) {
-      Alert.alert('Erreur', 'Token citoyen non disponible. Veuillez vous reconnecter.');
+    if (!requestType.trim()) {
+      Alert.alert('Erreur', 'Le type de demande est requis.');
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert('Erreur', 'La description est requise.');
+      return;
+    }
+    if (!userToken) {
+      Alert.alert('Erreur', 'Vous devez être connecté pour soumettre une demande.');
       return;
     }
 
-    setLoading(true);
-    const requestData: CreateServiceRequestData = {
+    setIsLoading(true);
+
+    const attachmentsArray = attachmentsInput
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'))); // Basic URL validation
+
+    const payload: CreateServiceRequestPayload = {
       requestType,
       description,
-      attachments: attachments.split(',').map(url => url.trim()).filter(url => url.length > 0).join(','),
+      attachments: attachmentsArray.length > 0 ? attachmentsArray : undefined,
     };
 
-    try {
-      const response = await createServiceRequest(requestData, citizenToken);
-      if (response.status === 'success') {
-        Alert.alert('Succès', 'Votre demande a été soumise avec succès !');
-        // Optionally clear the form
-        setRequestType('');
-        setDescription('');
-        setAttachments('');
-      } else {
-        Alert.alert('Erreur', response.message || 'Échec de la soumission de la demande.');
-      }
-    } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Une erreur est survenue lors de la soumission.');
-    } finally {
-      setLoading(false);
+    const result = await requestService.createServiceRequest(payload, userToken);
+    setIsLoading(false);
+
+    if (result.success && result.data) {
+      Alert.alert('Succès', `Votre demande a été soumise avec succès ! ID: ${result.data.id}`);
+      setRequestType('');
+      setDescription('');
+      setAttachmentsInput('');
+      navigation.goBack(); // Ou naviguez vers 'MyRequestsScreen'
+    } else {
+      Alert.alert('Erreur de soumission', result.error || 'Une erreur est survenue.');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Soumettre une nouvelle demande</Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Soumettre une Nouvelle Demande</Text>
 
+      <Text style={styles.label}>Type de demande <Text style={styles.required}>*</Text></Text>
       <TextInput
         style={styles.input}
-        placeholder="Type de demande"
+        placeholder="Ex: Demande d'acte de naissance, Problème de voirie"
         value={requestType}
         onChangeText={setRequestType}
+        editable={!isLoading}
       />
 
+      <Text style={styles.label}>Description détaillée <Text style={styles.required}>*</Text></Text>
       <TextInput
         style={[styles.input, styles.textArea]}
-        placeholder="Description de la demande"
+        placeholder="Décrivez votre demande le plus précisément possible."
         value={description}
         onChangeText={setDescription}
         multiline
-        numberOfLines={4}
+        numberOfLines={6}
+        editable={!isLoading}
       />
 
+      <Text style={styles.label}>Pièces jointes (Optionnel)</Text>
       <TextInput
         style={styles.input}
-        placeholder="URLs des pièces jointes (séparées par des virgules)"
-        value={attachments}
-        onChangeText={setAttachments}
+        placeholder="URLs des fichiers, séparées par des virgules"
+        value={attachmentsInput}
+        onChangeText={setAttachmentsInput}
+        keyboardType="url"
+        autoCapitalize="none"
+        editable={!isLoading}
       />
+      <Text style={styles.infoText}>Pour l'instant, veuillez entrer les URLs directes des fichiers. L'upload direct sera bientôt disponible.</Text>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
       ) : (
-        <Button title="Soumettre la demande" onPress={handleSubmit} />
+        <View style={styles.buttonContainer}>
+            <Button title="Soumettre la Demande" onPress={handleSubmit} disabled={isLoading} />
+        </View>
       )}
-    </View>
+    </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 25,
     textAlign: 'center',
+    color: '#333',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#495057',
+  },
+  required: {
+    color: 'red',
   },
   input: {
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
+    borderColor: '#ced4da',
     fontSize: 16,
   },
   textArea: {
-    height: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
   },
+  infoText: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  loader: {
+    marginTop: 20,
+  },
+  buttonContainer: {
+    marginTop: 10,
+  }
 });
-
-export default SubmitRequestScreen;

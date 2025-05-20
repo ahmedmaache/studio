@@ -1,148 +1,216 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import { ServiceRequest } from '../../api/requestService'; // Assuming ServiceRequest interface is exported
-import requestService from '../../api/requestService';
-import { AuthContext } from '../../contexts/AuthContext'; // Assuming AuthContext is in this path
 
-type RootStackParamList = {
-  MyRequests: undefined;
-  RequestDetail: { requestId: string };
+// src/screens/main/MyRequestsScreen.tsx
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl, Button as RNButton } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import { requestService, type ServiceRequest } from '../../api/requestService';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+// Définir le type pour les éléments partiels affichés dans la liste
+type RequestListItem = Pick<ServiceRequest, 'id' | 'requestType' | 'status' | 'createdAt'>;
+
+// Définir les types pour votre MainStack si ce n'est pas déjà fait ailleurs
+type MainStackParamList = {
+  MyRequestsScreen: undefined; // Ou MyRequests si c'est le nom de la route
+  SubmitRequestScreen: undefined;
+  RequestDetailScreen: { requestId: string };
+  // ... autres écrans dans MainStack
 };
 
-type MyRequestsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MyRequests'>;
-type MyRequestsScreenRouteProp = RouteProp<RootStackParamList, 'MyRequests'>;
+type MyRequestsScreenNavigationProp = StackNavigationProp<MainStackParamList, 'MyRequestsScreen'>;
 
-type Props = {
-  navigation: MyRequestsScreenNavigationProp;
-  route: MyRequestsScreenRouteProp;
-};
+export default function MyRequestsScreen() {
+  const { userToken } = useAuth();
+  const navigation = useNavigation<MyRequestsScreenNavigationProp>();
 
-const MyRequestsScreen: React.FC<Props> = ({ navigation }) => {
-  const { citizenToken } = useContext(AuthContext);
-  const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [requests, setRequests] = useState<RequestListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchRequests = async (pageNumber: number) => {
-    if (!citizenToken) {
-      Alert.alert('Authentication error', 'User not authenticated.');
-      setLoading(false);
-      setRefreshing(false);
+  const PAGE_LIMIT = 10;
+
+  const loadRequests = useCallback(async (pageToLoad: number, isRefreshing = false) => {
+    if (!userToken) {
+      setError("Utilisateur non authentifié.");
+      setIsLoading(false);
+      if (isRefreshing) setRefreshing(false);
       return;
     }
-    setLoading(true);
-    try {
-      const response = await requestService.getMyServiceRequests(citizenToken, pageNumber);
-      if (response.status === 'success' && response.data) {
-        if (pageNumber === 1) {
-          setRequests(response.data.requests);
-        } else {
-          setRequests([...requests, ...response.data.requests]);
-        }
-        setTotalPages(response.data.totalPages);
-        setPage(pageNumber);
-      } else {
-        Alert.alert('Error', response.message || 'Failed to fetch requests.');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await requestService.getMyServiceRequests(userToken, pageToLoad, PAGE_LIMIT);
+    
+    setIsLoading(false);
+    if (isRefreshing) setRefreshing(false);
+
+    if (result.success && result.data) {
+      setRequests(pageToLoad === 1 ? result.data.requests : [...requests, ...result.data.requests]);
+      setTotalPages(result.data.totalPages);
+      setCurrentPage(result.data.currentPage);
+    } else {
+      setError(result.error || 'Erreur lors du chargement des demandes.');
+      // Si la page 1 échoue, vider les demandes
+      if (pageToLoad === 1) setRequests([]);
     }
-  };
+  }, [userToken, requests]); // requests est ajouté ici pour la logique de `loadMore` si on concatène
 
-  useEffect(() => {
-    fetchRequests(1);
-  }, [citizenToken]);
+  useFocusEffect(
+    useCallback(() => {
+      // Charger la première page à chaque focus sur l'écran pour rafraîchir
+      loadRequests(1, true); 
+    }, [userToken]) // Recharger si le userToken change (connexion/déconnexion)
+  );
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchRequests(1);
-  };
+    setCurrentPage(1); // Réinitialiser la page pour le rafraîchissement
+    loadRequests(1, true);
+  }, [loadRequests]);
 
-  const loadMore = () => {
-    if (page < totalPages && !loading) {
-      fetchRequests(page + 1);
+  const handleLoadMore = () => {
+    if (!isLoading && currentPage < totalPages) {
+      loadRequests(currentPage + 1);
     }
   };
 
-  const renderItem = ({ item }: { item: ServiceRequest }) => (
-    <TouchableOpacity
-      style={styles.requestItem}
-      onPress={() => navigation.navigate('RequestDetail', { requestId: item.id })}
+  const renderItem = ({ item }: { item: RequestListItem }) => (
+    <TouchableOpacity 
+        style={styles.itemContainer}
+        onPress={() => navigation.navigate('RequestDetailScreen', { requestId: item.id })}
     >
-      <Text style={styles.requestTitle}>Type: {item.requestType}</Text>
-      <Text>Status: {item.status}</Text>
-      <Text>Submitted: {new Date(item.submissionDate).toLocaleDateString()}</Text>
-      {/* Add more key info as needed */}
+      <Text style={styles.itemType}>{item.requestType || "Type non spécifié"}</Text>
+      <View style={styles.itemRow}>
+        <Text style={styles.itemLabel}>Statut:</Text>
+        <Text style={[styles.itemStatus, styles[`status${item.status}`]]}>{item.status || "N/A"}</Text>
+      </View>
+      <View style={styles.itemRow}>
+         <Text style={styles.itemLabel}>Soumise le:</Text>
+         <Text style={styles.itemDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+      </View>
+      <Text style={styles.itemId}>ID: {item.id}</Text>
     </TouchableOpacity>
   );
 
+  const renderListFooter = () => {
+    if (isLoading && currentPage > 0 && requests.length > 0) { // Affiche le loader seulement si ce n'est pas le chargement initial
+      return <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 20 }} />;
+    }
+    return null;
+  };
+
+  if (isLoading && requests.length === 0) {
+    return <ActivityIndicator style={styles.centered} size="large" color="#007AFF" />;
+  }
+
+  if (error && requests.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error}</Text>
+        <RNButton title="Réessayer" onPress={() => loadRequests(1, true)} />
+      </View>
+    );
+  }
+  
   return (
-    <View style={styles.container}>
-      {loading && page === 1 ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <FlatList
-          data={requests}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListFooterComponent={() =>
-            loading && page > 1 ? <ActivityIndicator size="small" color="#0000ff" /> : null
-          }
-          ListEmptyComponent={() =>
-            !loading && requests.length === 0 ? (
-              <Text style={styles.emptyMessage}>No service requests found.</Text>
-            ) : null
-          }
-        />
-      )}
-    </View>
+    <FlatList
+      data={requests}
+      renderItem={renderItem}
+      keyExtractor={item => item.id}
+      contentContainerStyle={styles.listContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#007AFF"]}/>}
+      ListEmptyComponent={() => 
+        !isLoading && requests.length === 0 ? (
+            <Text style={styles.emptyText}>Aucune demande de service trouvée.</Text>
+        ) : null
+      }
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={renderListFooter}
+    />
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f8f9fa',
   },
   listContainer: {
-    paddingBottom: 20,
+    padding: 10,
+    flexGrow: 1, // Important pour que ListEmptyComponent soit centré si FlatList est dans une View
   },
-  requestItem: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 8,
+  itemContainer: {
+    backgroundColor: 'white',
+    padding: 18,
+    borderRadius: 10,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    borderLeftWidth: 5,
+    borderLeftColor: '#007AFF', // Couleur d'accent
   },
-  requestTitle: {
-    fontSize: 16,
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  itemLabel: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+    marginRight: 5,
+  },
+  itemType: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#333',
+    marginBottom: 4,
   },
-  emptyMessage: {
+  itemStatus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    overflow: 'hidden', // Pour que le borderRadius s'applique au background
+    color: 'white', // Couleur de texte par défaut pour les badges
+  },
+  statusPENDING: { backgroundColor: '#ffc107', color: '#333' }, // Jaune
+  statusIN_PROGRESS: { backgroundColor: '#17a2b8', color: 'white'}, // Cyan
+  statusRESOLVED: { backgroundColor: '#28a745', color: 'white'}, // Vert
+  statusREJECTED: { backgroundColor: '#dc3545', color: 'white'}, // Rouge
+  itemDate: {
+    fontSize: 13,
+    color: '#6c757d',
+  },
+  itemId: {
+    fontSize: 11,
+    color: '#adb5bd',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  errorText: {
+    color: 'red',
     textAlign: 'center',
-    marginTop: 20,
+    marginBottom: 10,
     fontSize: 16,
-    color: '#666',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 16,
+    color: '#6c757d',
   },
 });
-
-export default MyRequestsScreen;

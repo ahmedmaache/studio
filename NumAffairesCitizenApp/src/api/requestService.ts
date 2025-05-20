@@ -1,22 +1,37 @@
+
+// src/api/requestService.ts
 import { Alert } from 'react-native';
 
-const API_BASE_URL = 'YOUR_BACKEND_API_URL'; // TODO: Replace with your actual backend URL
+// Remplacez par l'URL de base de votre backend Next.js (partie citoyen)
+const API_BASE_URL = 'http://localhost:9002/api/citizen';
+
+export interface ServiceRequestHistoryEntry {
+  timestamp: string;
+  adminId: string;
+  adminName?: string | null;
+  action: 'STATUS_CHANGE' | 'ASSIGNMENT' | 'NOTE_ADDED' | 'CREATED';
+  oldStatus?: string; // ServiceRequestStatus enum from backend
+  newStatus?: string; // ServiceRequestStatus enum from backend
+  assignedToAdminId?: string | null;
+  assignedToAdminName?: string | null;
+  notes?: string;
+  description?: string;
+}
 
 export interface ServiceRequest {
   id: string;
   requestType: string;
   description: string;
-  status: 'Pending' | 'InProgress' | 'Completed' | 'Rejected'; // Example statuses
-  submittedAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  attachments?: string[]; // URLs of attachments
-  historyLog?: RequestHistoryEntry[];
-}
-
-export interface RequestHistoryEntry {
-  status: string;
-  timestamp: string; // ISO date string
-  notes?: string;
+  attachments: string[];
+  status: string; // Should match ServiceRequestStatus enum from backend
+  resolutionNotes?: string | null;
+  adminNotes?: string | null;
+  historyLog: ServiceRequestHistoryEntry[];
+  citizenId: string;
+  assignedAdminId?: string | null;
+  assignedAdmin?: { name?: string | null } | null; // Assuming admin name might be nested
+  createdAt: string; // ISO Date string
+  updatedAt: string; // ISO Date string
 }
 
 export interface CreateServiceRequestPayload {
@@ -25,98 +40,109 @@ export interface CreateServiceRequestPayload {
   attachments?: string[];
 }
 
-export interface GetServiceRequestsResponse {
-  requests: ServiceRequest[];
-  total: number;
-  page: number;
-  limit: number;
+export interface CreateServiceRequestResponse {
+  success: boolean;
+  data?: ServiceRequest;
+  error?: string;
+  details?: any; // For Zod validation errors
 }
 
-const handleApiError = (error: any, defaultMessage: string) => {
-  console.error("API Error:", error);
-  Alert.alert("Error", error.message || defaultMessage);
-};
+export interface GetMyServiceRequestsResponse {
+  success: boolean;
+  data?: {
+    requests: Pick<ServiceRequest, 'id' | 'requestType' | 'status' | 'createdAt' | 'updatedAt'>[];
+    totalRecords: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+  };
+  error?: string;
+}
 
-export const createServiceRequest = async (
-  token: string,
-  payload: CreateServiceRequestPayload
-): Promise<ServiceRequest | null> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/citizen/service-requests`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+export interface GetMyServiceRequestDetailsResponse {
+  success: boolean;
+  data?: ServiceRequest;
+  error?: string;
+}
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }
-
-    const newRequest: ServiceRequest = await response.json();
-    return newRequest;
-  } catch (error) {
-    handleApiError(error, "Failed to create service request.");
-    return null;
+const handleApiError = (error: any, defaultMessage: string): { success: false, error: string } => {
+  console.error("API Service Error:", error);
+  if (error instanceof Error) {
+    return { success: false, error: error.message || defaultMessage };
   }
+  return { success: false, error: defaultMessage };
 };
 
-export const getMyServiceRequests = async (
-  token: string,
-  page: number = 1,
-  limit: number = 10
-): Promise<GetServiceRequestsResponse | null> => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/citizen/service-requests?page=${page}&limit=${limit}`,
-      {
-        method: 'GET',
+export const requestService = {
+  createServiceRequest: async (
+    payload: CreateServiceRequestPayload,
+    token: string
+  ): Promise<CreateServiceRequestResponse> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/service-requests`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify(payload),
+      });
+      const data: CreateServiceRequestResponse = await response.json();
+      if (!response.ok || !data.success) {
+        return { success: false, error: data.error || data.details || `HTTP error! status: ${response.status}` };
       }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      return data;
+    } catch (error) {
+      return handleApiError(error, "Failed to create service request due to a network issue.");
     }
+  },
 
-    const data: GetServiceRequestsResponse = await response.json();
-    return data;
-  } catch (error) {
-    handleApiError(error, "Failed to fetch service requests.");
-    return null;
-  }
-};
-
-export const getMyServiceRequestDetails = async (
-  token: string,
-  requestId: string
-): Promise<ServiceRequest | null> => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/citizen/service-requests/${requestId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+  getMyServiceRequests: async (
+    token: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<GetMyServiceRequestsResponse> => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/service-requests?page=${page}&limit=${limit}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      const data: GetMyServiceRequestsResponse = await response.json();
+       if (!response.ok || !data.success) {
+        return { success: false, error: data.error || `HTTP error! status: ${response.status}` };
       }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      return data;
+    } catch (error) {
+      return handleApiError(error, "Failed to fetch service requests due to a network issue.");
     }
+  },
 
-    const data: ServiceRequest = await response.json();
-    return data;
-  } catch (error) {
-    handleApiError(error, `Failed to fetch details for request ${requestId}.`);
-    return null;
-  }
+  getMyServiceRequestDetails: async (
+    requestId: string,
+    token: string
+  ): Promise<GetMyServiceRequestDetailsResponse> => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/service-requests/${requestId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      const data: GetMyServiceRequestDetailsResponse = await response.json();
+      if (!response.ok || !data.success) {
+        return { success: false, error: data.error || `HTTP error! status: ${response.status}` };
+      }
+      return data;
+    } catch (error) {
+      return handleApiError(error, `Failed to fetch details for request ${requestId} due to a network issue.`);
+    }
+  },
 };
