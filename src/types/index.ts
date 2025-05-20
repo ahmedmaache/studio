@@ -5,7 +5,7 @@ export interface Announcement {
   title: string;
   content: string;
   summary?: string;
-  categories?: string[]; // Updated to array
+  categories?: string[];
   tags?: string[];
   status: ContentStatus;
   createdAt: Date;
@@ -47,9 +47,6 @@ export interface Decision {
   authorId: string;
 }
 
-// Enum for Content Status, matching Prisma schema
-// This can be removed if we import directly from @prisma/client where needed,
-// but having it here can be useful for frontend type safety without direct prisma dependency.
 export enum ContentStatus {
   DRAFT = "DRAFT",
   PUBLISHED = "PUBLISHED",
@@ -59,6 +56,7 @@ export enum ContentStatus {
 export interface Category {
   id: string; // This is more like a slug/key
   name: string; // This is the display name
+  description?: string; // Optional description for the category
 }
 
 export interface Tag {
@@ -79,24 +77,24 @@ export interface UserSubscription {
 
 
 export const availableCategories: Category[] = [
-  { id: 'etat-civil', name: 'État Civil' },
-  { id: 'urbanisme', name: 'Urbanisme' },
-  { id: 'evenements', name: 'Événements Locaux' },
-  { id: 'annonces-officielles', name: 'Annonces Officielles' },
-  { id: 'sante', name: 'Santé Publique' },
-  { id: 'education', name: 'Éducation' },
-  { id: 'transport', name: 'Transport' },
-  { id: 'culture', name: 'Culture et Loisirs' },
-  { id: 'decisions-municipales', name: 'Décisions Municipales'},
-  { id: 'environnement', name: 'Environnement' },
-  { id: 'securite', name: 'Sécurité' },
-  { id: 'aide-sociale', name: 'Aide Sociale' },
-  { id: 'logement', name: 'Logement' },
-  { id: 'travaux-publics', name: 'Travaux Publics' },
-  { id: 'voirie', name: 'Voirie et Propreté' },
-  { id: 'alertes-meteo', name: 'Alertes Météo'}, // Example new category
-  { id: 'coupures-eau-electricite', name: 'Coupures Eau/Électricité'}, // Example
-  { id: 'autres-demandes', name: 'Autres Demandes' },
+  { id: 'etat-civil', name: 'État Civil', description: 'Informations sur les actes de naissance, mariages, etc.' },
+  { id: 'urbanisme', name: 'Urbanisme', description: 'Permis de construire, plans d_aménagement.' },
+  { id: 'evenements', name: 'Événements Locaux', description: 'Festivals, marchés, réunions publiques.' },
+  { id: 'annonces-officielles', name: 'Annonces Officielles', description: 'Communications importantes de la mairie.' },
+  { id: 'sante', name: 'Santé Publique', description: 'Campagnes de vaccination, alertes sanitaires.' },
+  { id: 'education', name: 'Éducation', description: 'Informations sur les écoles, inscriptions.' },
+  { id: 'transport', name: 'Transport', description: 'Horaires des bus, travaux routiers affectant la circulation.' },
+  { id: 'culture', name: 'Culture et Loisirs', description: 'Expositions, spectacles, activités sportives.' },
+  { id: 'decisions-municipales', name: 'Décisions Municipales', description: 'Nouveaux arrêtés et délibérations.'},
+  { id: 'environnement', name: 'Environnement', description: 'Collecte des déchets, initiatives écologiques.' },
+  { id: 'securite', name: 'Sécurité', description: 'Alertes de sécurité, prévention.' },
+  { id: 'aide-sociale', name: 'Aide Sociale', description: 'Informations sur les aides et services sociaux.' },
+  { id: 'logement', name: 'Logement', description: 'Aides au logement, programmes immobiliers.' },
+  { id: 'travaux-publics', name: 'Travaux Publics', description: 'Chantiers en cours, perturbations.' },
+  { id: 'voirie', name: 'Voirie et Propreté', description: 'Nettoyage des rues, entretien des espaces verts.' },
+  { id: 'alertes-meteo', name: 'Alertes Météo', description: 'Vigilance météo, conseils de prudence.'},
+  { id: 'coupures-eau-electricite', name: 'Coupures Eau/Électricité', description: 'Informations sur les coupures programmées ou imprévues.'},
+  { id: 'autres-demandes', name: 'Autres Demandes', description: 'Catégorie pour les demandes diverses.' },
 ];
 
 export enum ServiceRequestStatus {
@@ -139,7 +137,7 @@ export interface ServiceRequest {
 export interface AdminUserForSelect {
   id: string;
   name: string | null;
-  email?: string | null; // Added email for potential display
+  email?: string | null;
 }
 
 // Types for Citizen Service Request API
