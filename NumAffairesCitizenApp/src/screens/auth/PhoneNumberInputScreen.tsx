@@ -1,29 +1,41 @@
 // src/screens/auth/PhoneNumberInputScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-// import { useNavigation } from '@react-navigation/native';
-// import { authService } from '../../api/authService'; // À décommenter plus tard
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import { useAuth } from '../../contexts/AuthContext'; // Ajustez le chemin
+
+// Définissez les types pour votre AuthStack si ce n'est pas déjà fait
+type AuthStackParamList = {
+  PhoneNumberInput: undefined;
+  OTP: { phoneNumber: string };
+  // ... autres écrans
+};
+
+type PhoneNumberInputScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'PhoneNumberInput'>;
 
 export default function PhoneNumberInputScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  // const navigation = useNavigation();
+  const { sendOTPForLogin, isLoading } = useAuth(); // Utilise isLoading du contexte
+  const navigation = useNavigation<PhoneNumberInputScreenNavigationProp>();
 
   const handleSendOTP = async () => {
-    // setIsLoading(true);
-    // if (!phoneNumber.trim()) {
-    //   Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone.');
-    //   setIsLoading(false);
-    //   return;
-    // }
-    // const response = await authService.sendOTP(phoneNumber);
-    // setIsLoading(false);
-    // if (response.success) {
-    //   navigation.navigate('OTP', { phoneNumber }); // Assurez-vous que 'OTP' est le nom de votre route OTP
-    // } else {
-    //   Alert.alert('Erreur', response.message || 'Impossible d_envoyer l_OTP.');
-    // }
-    Alert.alert('Info', 'Logique Send OTP à implémenter.');
+    if (!phoneNumber.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone.');
+      return;
+    }
+    // Ajouter une validation simple pour le format du numéro si nécessaire
+    // ex: if (!/^\d{10}$/.test(phoneNumber)) { Alert.alert('Erreur', 'Numéro de téléphone invalide.'); return; }
+
+
+    const result = await sendOTPForLogin(phoneNumber);
+
+    if (result.success) {
+      Alert.alert('Succès', result.message || 'OTP envoyé. Veuillez vérifier vos messages.');
+      navigation.navigate('OTP', { phoneNumber });
+    } else {
+      Alert.alert('Erreur', result.message || 'Impossible d_envoyer l_OTP.');
+    }
   };
 
   return (
@@ -32,16 +44,17 @@ export default function PhoneNumberInputScreen() {
       <Text style={styles.label}>Entrez votre numéro de téléphone :</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 05XXXXXXXX"
+        placeholder="Ex: 05XXXXXXXX" // Adaptez le placeholder à votre format local
         keyboardType="phone-pad"
         value={phoneNumber}
         onChangeText={setPhoneNumber}
         autoComplete="tel"
+        editable={!isLoading}
       />
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
-        <Button title="Recevoir le code OTP" onPress={handleSendOTP} />
+        <Button title="Recevoir le code OTP" onPress={handleSendOTP} disabled={isLoading} />
       )}
     </View>
   );

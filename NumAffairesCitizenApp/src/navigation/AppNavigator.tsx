@@ -1,29 +1,25 @@
 // src/navigation/AppNavigator.tsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-// import { useAuth } from '../contexts/AuthContext'; // À décommenter plus tard
-// import AuthStack from './AuthStack';
-// import MainStack from './MainStack';
-import { View, Text, StyleSheet } from 'react-native'; // Placeholder
+import { useAuth } from '../contexts/AuthContext';
+import AuthStack from './AuthStack';
+import MainStack from './MainStack';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function AppNavigator() {
-  // const { isAuthenticated, isLoading } = useAuth(); // À décommenter
+  const { isAuthenticated, isLoading } = useAuth();
 
-  // if (isLoading) {
-  //   return (
-  //     <View style={styles.centered}>
-  //       <Text>Chargement...</Text>
-  //     </View>
-  //   );
-  // }
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
-      {/* {isAuthenticated ? <MainStack /> : <AuthStack />} */}
-      {/* Placeholder pour l'instant */}
-      <View style={styles.centered}>
-        <Text>AppNavigator (Placeholder)</Text>
-      </View>
+      {isAuthenticated ? <MainStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }
@@ -33,5 +29,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff', // ou une couleur de fond de chargement
   },
 });
