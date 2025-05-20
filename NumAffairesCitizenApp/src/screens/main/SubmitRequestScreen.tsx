@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useAuth } from '../contexts/AuthContext'; // Assuming AuthContext is in this path
-import { createServiceRequest } from './requestService'; // Assuming requestService is in this path
+import { useAuth } from '../../contexts/AuthContext'; // Assuming AuthContext is in this path
+import { createServiceRequest } from '../../api/requestService';
 
 interface CreateServiceRequestData {
   requestType: string;

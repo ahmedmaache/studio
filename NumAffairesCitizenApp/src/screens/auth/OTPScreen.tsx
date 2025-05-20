@@ -7,41 +7,49 @@ import { useAuth } from '../../contexts/AuthContext'; // Ajustez le chemin
 
 // Types pour la navigation
 type AuthStackParamList = {
-  PhoneNumberInput: undefined;
+  PhoneNumberInput: undefined; // Assurez-vous que c'est défini
   OTP: { phoneNumber: string };
+  // ... autres écrans
 };
 type OTPScreenRouteProp = RouteProp<AuthStackParamList, 'OTP'>;
+// La navigation depuis cet écran pourrait aller vers PhoneNumberInput (en cas d'erreur) ou MainStack (implicitement via AuthContext)
 type OTPScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'OTP'>;
 
 
 export default function OTPScreen() {
   const [otp, setOtp] = useState('');
-  const { signIn, isLoading } = useAuth(); // Utilise isLoading du contexte
+  const { signIn, isLoading, sendOTPForLogin } = useAuth(); // Utilise isLoading et signIn du contexte
   const route = useRoute<OTPScreenRouteProp>();
-  const navigation = useNavigation<OTPScreenNavigationProp>();
+  const navigation = useNavigation<OTPScreenNavigationProp>(); // Pour la navigation si besoin (ex: retour)
   
   const { phoneNumber } = route.params;
 
   const handleVerifyOTP = async () => {
-    if (!otp.trim() || otp.length < 4) { // Ou la longueur de votre OTP
+    if (!otp.trim() || otp.length < 4) { // Ou la longueur de votre OTP (6 chiffres?)
       Alert.alert('Erreur', 'Veuillez entrer un code OTP valide.');
       return;
     }
     
-    const result = await signIn(phoneNumber, otp);
+    const result = await signIn(phoneNumber, otp); // signIn gère la navigation implicite via AuthContext
     
     if (result.success) {
-      Alert.alert('Succès', result.message || 'Connexion réussie !');
-      // AppNavigator gérera la redirection vers MainStack automatiquement grâce à la mise à jour de isAuthenticated
+      // L'AppNavigator gérera la redirection vers MainStack
+      // On pourrait afficher un message de succès ici si on le souhaite,
+      // mais généralement, la redirection est suffisante.
+      // Alert.alert('Succès', result.message || 'Connexion réussie !');
     } else {
-      Alert.alert('Erreur de connexion', result.message || 'Code OTP incorrect ou expiré.');
+      Alert.alert('Erreur de connexion', result.message || result.error || 'Code OTP incorrect ou expiré.');
     }
   };
   
   const handleResendOTP = async () => {
-    // Implémentez la logique pour renvoyer l'OTP si nécessaire
-    // Pourrait appeler une fonction de sendOTPForLogin de AuthContext à nouveau
-    Alert.alert('Info', 'Logique pour renvoyer l_OTP à implémenter.');
+    Alert.alert('Renvoyer OTP', `Demande de renvoi de l'OTP pour ${phoneNumber}...`);
+    const result = await sendOTPForLogin(phoneNumber); // Réutilise la fonction du AuthContext
+    if (result.success) {
+      Alert.alert('Succès', result.message || 'Un nouveau code OTP a été envoyé.');
+    } else {
+      Alert.alert('Erreur', result.message || result.error || 'Impossible de renvoyer l_OTP.');
+    }
   };
 
   return (
@@ -53,19 +61,22 @@ export default function OTPScreen() {
       <TextInput
         style={styles.input}
         placeholder="Entrez le code OTP"
-        keyboardType="number-pad"
+        keyboardType="number-pad" // number-pad est souvent mieux pour les OTPs
         value={otp}
         onChangeText={setOtp}
         maxLength={6} // Si votre OTP a 6 chiffres
         editable={!isLoading}
       />
       {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" style={{marginBottom: 20}} />
+        <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
       ) : (
         <View>
-            <Button title="Vérifier le code" onPress={handleVerifyOTP} disabled={isLoading} />
-            {/* <Button title="Renvoyer le code" onPress={handleResendOTP} disabled={isLoading} color="#777" /> */}
-            {/* Vous pouvez ajouter un bouton Renvoyer plus tard avec un timer */}
+            <View style={styles.buttonContainer}>
+                <Button title="Vérifier le code" onPress={handleVerifyOTP} disabled={isLoading} />
+            </View>
+            <View style={styles.buttonContainer}>
+                <Button title="Renvoyer le code" onPress={handleResendOTP} disabled={isLoading} color="#777777" />
+            </View>
         </View>
       )}
     </View>
@@ -93,7 +104,7 @@ const styles = StyleSheet.create({
   },
   phoneNumber: {
     fontWeight: 'bold',
-    color: '#007AFF'
+    color: '#007AFF' // Couleur typique pour les liens/numéros
   },
   input: {
     backgroundColor: 'white',
@@ -104,6 +115,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: 'center', // Centrer le texte de l'OTP
   },
+  loader: {
+    marginBottom: 20, // Pour espacer le loader des boutons
+  },
+  buttonContainer: {
+    marginBottom: 10, // Espacement entre les boutons
+  }
 });

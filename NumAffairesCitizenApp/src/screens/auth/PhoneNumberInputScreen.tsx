@@ -6,17 +6,19 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../../contexts/AuthContext'; // Ajustez le chemin
 
 // Définissez les types pour votre AuthStack si ce n'est pas déjà fait
+// Ceci devrait correspondre à ce qui est défini dans AuthStack.tsx
 type AuthStackParamList = {
   PhoneNumberInput: undefined;
   OTP: { phoneNumber: string };
-  // ... autres écrans
+  // ... autres écrans d'authentification si vous en avez
 };
 
+// Type pour la prop de navigation de cet écran
 type PhoneNumberInputScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'PhoneNumberInput'>;
 
 export default function PhoneNumberInputScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const { sendOTPForLogin, isLoading } = useAuth(); // Utilise isLoading du contexte
+  const { sendOTPForLogin, isLoading } = useAuth(); // Utilise isLoading et sendOTPForLogin du contexte
   const navigation = useNavigation<PhoneNumberInputScreenNavigationProp>();
 
   const handleSendOTP = async () => {
@@ -24,9 +26,8 @@ export default function PhoneNumberInputScreen() {
       Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone.');
       return;
     }
-    // Ajouter une validation simple pour le format du numéro si nécessaire
-    // ex: if (!/^\d{10}$/.test(phoneNumber)) { Alert.alert('Erreur', 'Numéro de téléphone invalide.'); return; }
-
+    // Vous pouvez ajouter une validation plus poussée du numéro ici
+    // ex: if (!/^\d{10}$/.test(phoneNumber.replace(/\s/g, ''))) { Alert.alert('Erreur', 'Numéro de téléphone invalide.'); return; }
 
     const result = await sendOTPForLogin(phoneNumber);
 
@@ -34,7 +35,7 @@ export default function PhoneNumberInputScreen() {
       Alert.alert('Succès', result.message || 'OTP envoyé. Veuillez vérifier vos messages.');
       navigation.navigate('OTP', { phoneNumber });
     } else {
-      Alert.alert('Erreur', result.message || 'Impossible d_envoyer l_OTP.');
+      Alert.alert('Erreur', result.message || result.error || 'Impossible d_envoyer l_OTP.');
     }
   };
 

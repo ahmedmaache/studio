@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { getMyServiceRequestDetails, ServiceRequest } from '../api/requestService';
-import { AuthContext } from '../contexts/AuthContext'; // Assuming AuthContext is here
+import { getMyServiceRequestDetails, ServiceRequest } from '../../api/requestService';
+import { AuthContext } from '../../contexts/AuthContext'; // Assuming AuthContext is here
 
 type RequestDetailScreenRouteProp = RouteProp<{ RequestDetail: { requestId: string } }, 'RequestDetail'>;
 
