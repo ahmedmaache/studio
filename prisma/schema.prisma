@@ -1,4 +1,3 @@
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -8,48 +7,33 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum AdminRole {
-  SUPER_ADMIN
-  EDITOR
-}
-
-enum ContentStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-enum ServiceRequestStatus {
-  PENDING
-  IN_PROGRESS
-  RESOLVED
-  REJECTED
-}
-
 model User {
   id            String    @id @default(cuid())
-  email         String    @unique
-  hashedPassword String? // Optional if using OAuth exclusively for some users, but required for Credentials
   name          String?
-  role          AdminRole @default(EDITOR) // Custom role for admin users
-  image         String?   // Required by NextAuth for user image
-  emailVerified DateTime? // Required by NextAuth for email verification tracking
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  hashedPassword String? // Kept for credentials auth
+  role          AdminRole @default(EDITOR) // Custom role for admin
+  accounts      Account[]
+  sessions      Session[]
 
-  accounts      Account[] // For OAuth providers
-  sessions      Session[] // For session management
-
-  // WilayaConnect specific relations
-  announcements             Announcement[]            @relation("AnnouncementAuthor")
-  events                    Event[]                   @relation("EventAuthor")
-  decisions                 Decision[]                @relation("DecisionAuthor")
-  communicationLogs         CommunicationLog[]        @relation("CommunicationLogSender")
-  assignedServiceRequests   ServiceRequest[]          @relation("AssignedServiceRequests")
+  // Relations specific to AdminUser functionality
+  announcements           Announcement[]           @relation("AnnouncementAuthor")
+  events                  Event[]                  @relation("EventAuthor")
+  decisions               Decision[]               @relation("DecisionAuthor")
+  communicationLogs       CommunicationLog[]       @relation("CommunicationLogAdmin")
+  assignedServiceRequests ServiceRequest[]         @relation("ServiceRequestAssignee")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Required by NextAuth Prisma Adapter
+enum AdminRole {
+  SUPER_ADMIN
+  EDITOR
+}
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -69,7 +53,6 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-// Required by NextAuth Prisma Adapter
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -78,7 +61,6 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Required by NextAuth Prisma Adapter
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -88,23 +70,19 @@ model VerificationToken {
 }
 
 model Announcement {
-  id          String        @id @default(cuid())
-  title       String
-  content     String        @db.Text
-  summaryAI   String?       @db.Text
-  categories  String[]      // Changed from category String? to String[]
-  tagsAI      String[]?
-  status      ContentStatus @default(DRAFT)
-  imageUrl    String?       // Renamed from imageUrlAI
-  publishedAt DateTime?
-
-  authorId String
-  author   User   @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([authorId])
+  id           String        @id @default(cuid())
+  title        String
+  content      String        @db.Text
+  summary      String?       @db.Text
+  categories   String[]      @default([]) // Changed from category String?
+  tags         String[]      @default([]) // Renamed from tagsAI
+  status       ContentStatus @default(DRAFT)
+  imageUrl     String?       // Renamed from imageUrlAI
+  publishedAt  DateTime?
+  authorId     String
+  author       User          @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Event {
@@ -116,92 +94,112 @@ model Event {
   status      ContentStatus @default(DRAFT)
   imageUrl    String?
   publishedAt DateTime?
-
-  authorId String
-  author   User   @relation("EventAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([authorId])
+  authorId    String
+  author      User          @relation("EventAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 model Decision {
   id              String        @id @default(cuid())
   title           String
   content         String        @db.Text
-  summary         String?       @db.Text // Renamed from summaryAI
-  categories      String[]?
-  tags            String[]?     // Renamed from tagsAI
+  summary         String?       @db.Text
+  categories      String[]      @default([])
+  tags            String[]      @default([]) // Renamed from tagsAI
   status          ContentStatus @default(DRAFT)
   decisionDate    DateTime
   referenceNumber String?
   attachmentUrl   String?
   publishedAt     DateTime?
+  authorId        String
+  author          User          @relation("DecisionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
 
-  authorId String
-  author   User   @relation("DecisionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([authorId])
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 model Citizen {
-  id              String    @id @default(cuid())
-  phoneNumber     String    @unique
-  name            String?
-  address         String?
-  otp             String?
-  otpExpiresAt    DateTime?
-  isVerified      Boolean   @default(false)
+  id            String    @id @default(cuid())
+  phoneNumber   String    @unique
+  name          String?
+  address       String?
+  otp           String?
+  otpExpiresAt  DateTime?
+  isVerified    Boolean   @default(false)
+  pushTokens    String[]  @default([]) // For FCM device tokens
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  serviceRequests ServiceRequest[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  serviceRequests          ServiceRequest[]
+  notificationSubscriptions NotificationSubscription[] @relation("CitizenSubscriptions")
 }
 
 model ServiceRequest {
-  id              String    @id @default(cuid())
-  requestType     String
-  description     String    @db.Text
-  attachments     String[]  // URLs to attachments - Changed from Json?
-  status          ServiceRequestStatus @default(PENDING)
-  resolutionNotes String?   @db.Text
-  adminNotes      String?   @db.Text
-  historyLog      Json?     // Array of ServiceRequestHistoryEntry
+  id                String                 @id @default(cuid())
+  requestType       String
+  description       String                 @db.Text
+  attachments       String[]               @default([]) // Changed from Json? to String[]
+  status            ServiceRequestStatus @default(PENDING)
+  resolutionNotes   String?                @db.Text
+  adminNotes        String?                @db.Text
+  historyLog        Json                   @default("[]") // Keep as Json, store ServiceRequestHistoryEntry[]
+  citizenId         String
+  citizen           Citizen                @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  assignedAdminId   String?
+  assignedAdmin     User?                  @relation("ServiceRequestAssignee", fields: [assignedAdminId], references: [id], onDelete:SetNull)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+}
 
-  citizenId String
-  citizen   Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
-
-  assignedAdminId String?
-  assignedAdmin   User?     @relation("AssignedServiceRequests", fields: [assignedAdminId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([citizenId])
-  @@index([assignedAdminId])
-  @@index([status])
-  @@index([requestType])
+enum ServiceRequestStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
 }
 
 model CommunicationLog {
-  id                       String   @id @default(cuid())
-  messageContent           String   @db.Text
-  channels                 Json     // Example: { sms: true, push: false, whatsapp: true }
-  targetAudienceCategories Json     // Example: ["Urbanisme", "Santé"]
-  status                   String   // Example: DRAFT, SCHEDULED, SENT, FAILED
+  id                       String                 @id @default(cuid())
+  messageContent           String                 @db.Text
+  channels                 Json // Store an object like { sms: boolean, push: boolean, whatsapp: boolean }
+  targetAudienceCategories String[] // Store array of category names/IDs
+  targetCitizenIds         String[] @default([]) // IDs of citizens actually targeted
+  status                   CommunicationStatus @default(PENDING)
   scheduledAt              DateTime?
   sentAt                   DateTime?
-  
-  createdByAdminId String?
-  createdByAdmin   User?     @relation("CommunicationLogSender", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  failureReason            String?
+  fcmMessageIds            String[]  @default([])
+  fcmSuccessCount          Int?
+  fcmFailureCount          Int?
+  adminId                  String
+  admin                    User                   @relation("CommunicationLogAdmin", fields: [adminId], references: [id], onDelete:SetNull) // SetNull if admin is deleted
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum CommunicationStatus {
+  PENDING
+  SENT
+  PARTIALLY_FAILED
+  FAILED
+  DRAFT
+  SCHEDULED
+}
 
-  @@index([createdByAdminId])
+model NotificationSubscription {
+  id           String  @id @default(cuid())
+  citizenId    String
+  categoryName String  // e.g., "Urbanisme", "Santé Publique"
+  isActive     Boolean @default(true)
+  citizen      Citizen @relation("CitizenSubscriptions", fields: [citizenId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([citizenId, categoryName]) // Ensure a citizen subscribes to a category only once
 }
