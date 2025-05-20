@@ -1,13 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client-js"
-}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
 }
 
 enum AdminRole {
@@ -28,34 +26,30 @@ enum ServiceRequestStatus {
   REJECTED
 }
 
-// Renamed from AdminUser for NextAuth PrismaAdapter compatibility
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  hashedPassword String?   // Nullable for potential OAuth users, but required for Credentials
+  hashedPassword String? // Optional if using OAuth exclusively for some users, but required for Credentials
   name          String?
-  image         String?   // For NextAuth compatibility (profile picture)
-  emailVerified DateTime? // For NextAuth compatibility
+  role          AdminRole @default(EDITOR) // Custom role for admin users
+  image         String?   // Required by NextAuth for user image
+  emailVerified DateTime? // Required by NextAuth for email verification tracking
 
-  role AdminRole @default(EDITOR) // Custom field for admin roles
+  accounts      Account[] // For OAuth providers
+  sessions      Session[] // For session management
 
-  // Relations previously in AdminUser
-  announcements           Announcement[]           @relation("AnnouncementAuthor")
-  events                  Event[]                  @relation("EventAuthor")
-  decisions               Decision[]               @relation("DecisionAuthor")
-  communicationLogs       CommunicationLog[]       @relation("CommunicationLogAuthor")
-  assignedServiceRequests ServiceRequest[]         @relation("AssignedAdmin") // Requests assigned TO this admin
-
-  // NextAuth specific relations
-  accounts Account[]
-  sessions Session[]
+  // WilayaConnect specific relations
+  announcements             Announcement[]            @relation("AnnouncementAuthor")
+  events                    Event[]                   @relation("EventAuthor")
+  decisions                 Decision[]                @relation("DecisionAuthor")
+  communicationLogs         CommunicationLog[]        @relation("CommunicationLogSender")
+  assignedServiceRequests   ServiceRequest[]          @relation("AssignedServiceRequests")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@map("users") // Explicitly map to "users" table
 }
 
+// Required by NextAuth Prisma Adapter
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -73,38 +67,35 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@map("accounts")
 }
 
+// Required by NextAuth Prisma Adapter
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
 }
 
+// Required by NextAuth Prisma Adapter
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map("verification_tokens")
 }
-
 
 model Announcement {
   id          String        @id @default(cuid())
   title       String
   content     String        @db.Text
   summaryAI   String?       @db.Text
-  category    String?       // Consider making this a relation to a Category model later
-  tagsAI      String[]
+  categories  String[]      // Changed from category String? to String[]
+  tagsAI      String[]?
   status      ContentStatus @default(DRAFT)
-  imageUrlAI  String?
+  imageUrl    String?       // Renamed from imageUrlAI
   publishedAt DateTime?
 
   authorId String
@@ -113,7 +104,7 @@ model Announcement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("announcements")
+  @@index([authorId])
 }
 
 model Event {
@@ -132,16 +123,16 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("events")
+  @@index([authorId])
 }
 
 model Decision {
   id              String        @id @default(cuid())
   title           String
   content         String        @db.Text
-  summaryAI       String?       @db.Text
-  category        String?       // Consider making this a relation
-  tagsAI          String[]
+  summary         String?       @db.Text // Renamed from summaryAI
+  categories      String[]?
+  tags            String[]?     // Renamed from tagsAI
   status          ContentStatus @default(DRAFT)
   decisionDate    DateTime
   referenceNumber String?
@@ -154,7 +145,7 @@ model Decision {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("decisions")
+  @@index([authorId])
 }
 
 model Citizen {
@@ -165,52 +156,52 @@ model Citizen {
   otp             String?
   otpExpiresAt    DateTime?
   isVerified      Boolean   @default(false)
-  
-  serviceRequests ServiceRequest[] @relation("CitizenRequests")
+
+  serviceRequests ServiceRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@map("citizens")
 }
 
 model ServiceRequest {
-  id            String               @id @default(cuid())
-  requestType   String // e.g., 'etat_civil_birth_certificate', 'urbanisme_permit'
-  description   String               @db.Text
-  attachments   String[] // Array of URLs to uploaded files
-  status        ServiceRequestStatus @default(PENDING)
-  resolutionNotes String?            @db.Text
-  adminNotes    String?              @db.Text
-  historyLog    Json? // To store [{status, changedAt, changedByAdminId?, notes}]
+  id              String    @id @default(cuid())
+  requestType     String
+  description     String    @db.Text
+  attachments     String[]  // URLs to attachments - Changed from Json?
+  status          ServiceRequestStatus @default(PENDING)
+  resolutionNotes String?   @db.Text
+  adminNotes      String?   @db.Text
+  historyLog      Json?     // Array of ServiceRequestHistoryEntry
 
   citizenId String
-  citizen   Citizen @relation("CitizenRequests", fields: [citizenId], references: [id], onDelete: Cascade)
+  citizen   Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
 
   assignedAdminId String?
-  assignedAdmin   User?   @relation("AssignedAdmin", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  assignedAdmin   User?     @relation("AssignedServiceRequests", fields: [assignedAdminId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("service_requests")
+  @@index([citizenId])
+  @@index([assignedAdminId])
+  @@index([status])
+  @@index([requestType])
 }
 
 model CommunicationLog {
-  id                      String    @id @default(cuid())
-  messageContent          String    @db.Text
-  channels                Json // {sms: boolean, push: boolean, whatsapp: boolean}
-  targetAudienceCategories Json // Array of category strings
-  status                  String // e.g., DRAFT, SCHEDULED, SENT, FAILED
-  scheduledAt             DateTime?
-  sentAt                  DateTime?
-  failureReason           String?
-
+  id                       String   @id @default(cuid())
+  messageContent           String   @db.Text
+  channels                 Json     // Example: { sms: true, push: false, whatsapp: true }
+  targetAudienceCategories Json     // Example: ["Urbanisme", "Santé"]
+  status                   String   // Example: DRAFT, SCHEDULED, SENT, FAILED
+  scheduledAt              DateTime?
+  sentAt                   DateTime?
+  
   createdByAdminId String?
-  createdByAdmin   User?   @relation("CommunicationLogAuthor", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  createdByAdmin   User?     @relation("CommunicationLogSender", fields: [createdByAdminId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("communication_logs")
+  @@index([createdByAdminId])
 }
