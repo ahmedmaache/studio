@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Make sure to set this in your .env file
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  EDITOR
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model AdminUser {
+  id                      String            @id @default(cuid())
+  email                   String            @unique
+  hashedPassword          String
+  name                    String?
+  role                    AdminRole         @default(EDITOR)
+  announcements           Announcement[]    @relation("AdminAnnouncements")
+  events                  Event[]           @relation("AdminEvents")
+  decisions               Decision[]        @relation("AdminDecisions")
+  communicationLogs       CommunicationLog[] @relation("AdminCommunicationLogs")
+  assignedServiceRequests ServiceRequest[]  @relation("AssignedAdminRequests")
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+}
+
+model Announcement {
+  id          String        @id @default(cuid())
+  title       String
+  content     String        @db.Text
+  summaryAI   String?       @db.Text
+  category    String?
+  tagsAI      String[]      // Prisma handles array of scalars for PostgreSQL
+  status      ContentStatus @default(DRAFT)
+  imageUrlAI  String?
+  publishedAt DateTime?
+  authorId    String
+  author      AdminUser     @relation("AdminAnnouncements", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Citizen {
+  id                String           @id @default(cuid())
+  phoneNumber       String           @unique
+  name              String?
+  address           String?
+  serviceRequests   ServiceRequest[] @relation("CitizenServiceRequests")
+  otp               String?
+  otpExpiresAt      DateTime?
+  isVerified        Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+// Placeholder models for relations - to be detailed in subsequent requests
+model Event {
+  id        String    @id @default(cuid())
+  title     String?   // Example field
+  // Add other Event specific fields here later
+  authorId  String
+  author    AdminUser @relation("AdminEvents", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Decision {
+  id        String    @id @default(cuid())
+  title     String?   // Example field
+  // Add other Decision specific fields here later
+  authorId  String
+  author    AdminUser @relation("AdminDecisions", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model CommunicationLog {
+  id                 String    @id @default(cuid())
+  messageContent     String?   // Example field
+  // Add other CommunicationLog specific fields here later
+  createdByAdminId String
+  adminUser          AdminUser @relation("AdminCommunicationLogs", fields: [createdByAdminId], references: [id], onDelete: SetNull) // Or Cascade if preferred
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model ServiceRequest {
+  id              String     @id @default(cuid())
+  requestType     String?    // Example field
+  // Add other ServiceRequest specific fields here later
+  citizenId       String
+  citizen         Citizen    @relation("CitizenServiceRequests", fields: [citizenId], references: [id], onDelete: Cascade)
+  assignedAdminId String?
+  assignedAdmin   AdminUser? @relation("AssignedAdminRequests", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
