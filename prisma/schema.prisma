@@ -1,13 +1,13 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL") // Make sure to set this in your .env file
-}
-
 generator client {
   provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum AdminRole {
@@ -21,89 +21,196 @@ enum ContentStatus {
   ARCHIVED
 }
 
-model AdminUser {
-  id                      String            @id @default(cuid())
-  email                   String            @unique
-  hashedPassword          String
-  name                    String?
-  role                    AdminRole         @default(EDITOR)
-  announcements           Announcement[]    @relation("AdminAnnouncements")
-  events                  Event[]           @relation("AdminEvents")
-  decisions               Decision[]        @relation("AdminDecisions")
-  communicationLogs       CommunicationLog[] @relation("AdminCommunicationLogs")
-  assignedServiceRequests ServiceRequest[]  @relation("AssignedAdminRequests")
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
+enum ServiceRequestStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
 }
+
+// Renamed from AdminUser for NextAuth PrismaAdapter compatibility
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  hashedPassword String?   // Nullable for potential OAuth users, but required for Credentials
+  name          String?
+  image         String?   // For NextAuth compatibility (profile picture)
+  emailVerified DateTime? // For NextAuth compatibility
+
+  role AdminRole @default(EDITOR) // Custom field for admin roles
+
+  // Relations previously in AdminUser
+  announcements           Announcement[]           @relation("AnnouncementAuthor")
+  events                  Event[]                  @relation("EventAuthor")
+  decisions               Decision[]               @relation("DecisionAuthor")
+  communicationLogs       CommunicationLog[]       @relation("CommunicationLogAuthor")
+  assignedServiceRequests ServiceRequest[]         @relation("AssignedAdmin") // Requests assigned TO this admin
+
+  // NextAuth specific relations
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users") // Explicitly map to "users" table
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
 
 model Announcement {
   id          String        @id @default(cuid())
   title       String
   content     String        @db.Text
   summaryAI   String?       @db.Text
-  category    String?
-  tagsAI      String[]      // Prisma handles array of scalars for PostgreSQL
+  category    String?       // Consider making this a relation to a Category model later
+  tagsAI      String[]
   status      ContentStatus @default(DRAFT)
   imageUrlAI  String?
   publishedAt DateTime?
-  authorId    String
-  author      AdminUser     @relation("AdminAnnouncements", fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+
+  authorId String
+  author   User   @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("announcements")
 }
 
-model Citizen {
-  id                String           @id @default(cuid())
-  phoneNumber       String           @unique
-  name              String?
-  address           String?
-  serviceRequests   ServiceRequest[] @relation("CitizenServiceRequests")
-  otp               String?
-  otpExpiresAt      DateTime?
-  isVerified        Boolean          @default(false)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-}
-
-// Placeholder models for relations - to be detailed in subsequent requests
 model Event {
-  id        String    @id @default(cuid())
-  title     String?   // Example field
-  // Add other Event specific fields here later
-  authorId  String
-  author    AdminUser @relation("AdminEvents", fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String        @id @default(cuid())
+  title       String
+  description String        @db.Text
+  eventDate   DateTime
+  location    String
+  status      ContentStatus @default(DRAFT)
+  imageUrl    String?
+  publishedAt DateTime?
+
+  authorId String
+  author   User   @relation("EventAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("events")
 }
 
 model Decision {
-  id        String    @id @default(cuid())
-  title     String?   // Example field
-  // Add other Decision specific fields here later
-  authorId  String
-  author    AdminUser @relation("AdminDecisions", fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              String        @id @default(cuid())
+  title           String
+  content         String        @db.Text
+  summaryAI       String?       @db.Text
+  category        String?       // Consider making this a relation
+  tagsAI          String[]
+  status          ContentStatus @default(DRAFT)
+  decisionDate    DateTime
+  referenceNumber String?
+  attachmentUrl   String?
+  publishedAt     DateTime?
+
+  authorId String
+  author   User   @relation("DecisionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("decisions")
 }
 
-model CommunicationLog {
-  id                 String    @id @default(cuid())
-  messageContent     String?   // Example field
-  // Add other CommunicationLog specific fields here later
-  createdByAdminId String
-  adminUser          AdminUser @relation("AdminCommunicationLogs", fields: [createdByAdminId], references: [id], onDelete: SetNull) // Or Cascade if preferred
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+model Citizen {
+  id              String    @id @default(cuid())
+  phoneNumber     String    @unique
+  name            String?
+  address         String?
+  otp             String?
+  otpExpiresAt    DateTime?
+  isVerified      Boolean   @default(false)
+  
+  serviceRequests ServiceRequest[] @relation("CitizenRequests")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("citizens")
 }
 
 model ServiceRequest {
-  id              String     @id @default(cuid())
-  requestType     String?    // Example field
-  // Add other ServiceRequest specific fields here later
-  citizenId       String
-  citizen         Citizen    @relation("CitizenServiceRequests", fields: [citizenId], references: [id], onDelete: Cascade)
+  id            String               @id @default(cuid())
+  requestType   String // e.g., 'etat_civil_birth_certificate', 'urbanisme_permit'
+  description   String               @db.Text
+  attachments   String[] // Array of URLs to uploaded files
+  status        ServiceRequestStatus @default(PENDING)
+  resolutionNotes String?            @db.Text
+  adminNotes    String?              @db.Text
+  historyLog    Json? // To store [{status, changedAt, changedByAdminId?, notes}]
+
+  citizenId String
+  citizen   Citizen @relation("CitizenRequests", fields: [citizenId], references: [id], onDelete: Cascade)
+
   assignedAdminId String?
-  assignedAdmin   AdminUser? @relation("AssignedAdminRequests", fields: [assignedAdminId], references: [id], onDelete: SetNull)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  assignedAdmin   User?   @relation("AssignedAdmin", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_requests")
+}
+
+model CommunicationLog {
+  id                      String    @id @default(cuid())
+  messageContent          String    @db.Text
+  channels                Json // {sms: boolean, push: boolean, whatsapp: boolean}
+  targetAudienceCategories Json // Array of category strings
+  status                  String // e.g., DRAFT, SCHEDULED, SENT, FAILED
+  scheduledAt             DateTime?
+  sentAt                  DateTime?
+  failureReason           String?
+
+  createdByAdminId String?
+  createdByAdmin   User?   @relation("CommunicationLogAuthor", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("communication_logs")
 }
