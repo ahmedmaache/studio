@@ -297,7 +297,7 @@ export default function NewAnnouncementPage() {
                 <CardHeader>
                     <CardTitle>Actions</CardTitle> 
                 </CardHeader>
-                <CardFooter className="flex flex-col sm:flex-row gap-2">
+                <CardFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
                     <Button 
                       type="button" 
                       variant="outline"

@@ -307,12 +307,13 @@ export default function NewDecisionPage() {
                 )}
               />
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
+            <CardFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={form.handleSubmit(data => handleFormSubmit(data, "draft"))}
                 disabled={isSubmitting || isAiSummaryLoading}
+                className="w-full sm:w-auto"
               >
                 {(isSubmitting || isAiSummaryLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save as Draft
@@ -321,6 +322,7 @@ export default function NewDecisionPage() {
                 type="button"
                 onClick={form.handleSubmit(data => handleFormSubmit(data, "published"))}
                 disabled={isSubmitting || isAiSummaryLoading}
+                className="w-full sm:w-auto"
               >
                 {(isSubmitting || isAiSummaryLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Publish Decision
