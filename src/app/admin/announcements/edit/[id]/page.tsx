@@ -267,7 +267,7 @@ export default function EditAnnouncementPage() {
                         </FormControl>
                         {currentImageUrl && (
                           <div className="mt-2 rounded-md overflow-hidden border aspect-video max-w-sm relative">
-                            <Image src={currentImageUrl} alt="Announcement image preview" layout="fill" objectFit="cover" data-ai-hint="public information event"/>
+                            <Image src={currentImageUrl} alt="Announcement image preview" layout="fill" objectFit="cover" data-ai-hint="public event"/>
                           </div>
                         )}
                         <FormMessage />
