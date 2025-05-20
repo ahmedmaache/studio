@@ -15,7 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createEvent } from "@/lib/actions/events";
-import { Loader2, CalendarIcon } from "lucide-react";
+import { Loader2, CalendarIcon, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -90,7 +90,9 @@ export default function NewEventPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Create New Event</h2>
+        <h2 className="text-3xl font-bold tracking-tight flex items-center">
+          <CalendarDays className="mr-3 h-8 w-8" /> Create New Event
+        </h2>
         <Button variant="outline" asChild>
           <Link href="/admin/events">Cancel</Link>
         </Button>

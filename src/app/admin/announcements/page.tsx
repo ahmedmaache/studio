@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { PlusCircle, Edit3, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, Edit3, Trash2, Loader2, Megaphone } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -106,7 +106,9 @@ export default function AnnouncementsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Announcements</h2>
+          <h2 className="text-3xl font-bold tracking-tight flex items-center">
+            <Megaphone className="mr-3 h-8 w-8" /> Announcements
+          </h2>
           <p className="text-muted-foreground">Manage and view all published and draft announcements.</p>
         </div>
         <Link href="/admin/announcements/new" passHref>
@@ -120,7 +122,8 @@ export default function AnnouncementsListPage() {
       {announcements.length === 0 ? (
         <Card className="text-center py-12">
           <CardHeader>
-            <CardTitle>No Announcements Yet</CardTitle>
+            <Megaphone className="mx-auto h-12 w-12 text-muted-foreground" />
+            <CardTitle className="mt-4">No Announcements Yet</CardTitle>
             <CardDescription>Start by creating your first announcement.</CardDescription>
           </CardHeader>
           <CardContent>

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { getAISuggestions, getAIGeneratedImage } from "@/lib/actions/ai";
 import { getAnnouncementById, updateAnnouncement } from "@/lib/actions/announcements";
-import { Loader2, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Loader2, Sparkles, Image as ImageIcon, Megaphone } from "lucide-react";
 import Image from "next/image";
 import type { Announcement } from "@/types";
 import Link from "next/link";
@@ -203,7 +203,9 @@ export default function EditAnnouncementPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Edit Announcement</h2>
+        <h2 className="text-3xl font-bold tracking-tight flex items-center">
+          <Megaphone className="mr-3 h-8 w-8" /> Edit Announcement
+        </h2>
         <Button variant="outline" asChild>
           <Link href="/admin/announcements">Cancel</Link>
         </Button>

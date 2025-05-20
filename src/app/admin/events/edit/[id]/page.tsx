@@ -16,7 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getEventById, updateEvent } from "@/lib/actions/events";
-import { Loader2, CalendarIcon } from "lucide-react";
+import { Loader2, CalendarIcon, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -128,7 +128,8 @@ export default function EditEventPage() {
     return (
       <Card className="max-w-lg mx-auto text-center">
         <CardHeader>
-          <CardTitle className="text-2xl">Event Not Found</CardTitle>
+          <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground" />
+          <CardTitle className="text-2xl mt-4">Event Not Found</CardTitle>
           <CardDescription>The event you are trying to edit does not exist or could not be loaded.</CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">
@@ -143,7 +144,9 @@ export default function EditEventPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Edit Event</h2>
+        <h2 className="text-3xl font-bold tracking-tight flex items-center">
+          <CalendarDays className="mr-3 h-8 w-8" /> Edit Event
+        </h2>
         <Button variant="outline" asChild>
           <Link href="/admin/events">Cancel</Link>
         </Button>

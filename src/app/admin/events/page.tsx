@@ -106,7 +106,9 @@ export default function EventsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Events</h2>
+          <h2 className="text-3xl font-bold tracking-tight flex items-center">
+            <CalendarDays className="mr-3 h-8 w-8" /> Events
+          </h2>
           <p className="text-muted-foreground">Manage and view all upcoming and past events.</p>
         </div>
         <Link href="/admin/events/new" passHref>

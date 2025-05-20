@@ -105,7 +105,9 @@ export default function DecisionsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Decisions</h2>
+          <h2 className="text-3xl font-bold tracking-tight flex items-center">
+            <FileText className="mr-3 h-8 w-8" /> Decisions
+          </h2>
           <p className="text-muted-foreground">Manage and view all official decisions.</p>
         </div>
         <Link href="/admin/decisions/new" passHref>
