@@ -1,17 +1,17 @@
-
+// src/types/index.ts
 
 export interface Announcement {
   id: string;
   title: string;
   content: string;
-  summaryAI?: string; // Kept summaryAI as per schema intent, but forms use 'summary'
+  summary?: string; 
   categories?: string[];
-  tagsAI?: string[];   // Kept tagsAI as per schema intent, but forms use 'tags'
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'; // Aligned with ContentStatus enum
+  tags?: string[];   
+  status: ContentStatus; 
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;
-  imageUrl?: string; // Renamed from imageUrlAI in schema for consistency
+  imageUrl?: string; 
   authorId: string;
   // author?: User; // Prisma User type would be imported if needed here
 }
@@ -22,7 +22,7 @@ export interface Event {
   description: string;
   eventDate: Date;
   location: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'; // Aligned with ContentStatus enum
+  status: ContentStatus;
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;
@@ -34,10 +34,10 @@ export interface Decision {
   id: string;
   title: string;
   content: string;
-  summary?: string; // Renamed from summaryAI in schema
+  summary?: string; 
   categories?: string[]; 
-  tags?: string[];    // Renamed from tagsAI in schema
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'; // Aligned with ContentStatus enum
+  tags?: string[];    
+  status: ContentStatus;
   decisionDate: Date; 
   referenceNumber?: string; 
   createdAt: Date;
@@ -45,6 +45,13 @@ export interface Decision {
   publishedAt?: Date;
   attachmentUrl?: string; 
   authorId: string;
+}
+
+// Enum for Content Status, matching Prisma schema
+export enum ContentStatus {
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+  ARCHIVED = "ARCHIVED",
 }
 
 export interface Category {
@@ -68,7 +75,7 @@ export interface UserSubscription {
   pushToken?: string; 
 }
 
-// Mock data for categories, often this would come from a DB
+
 export const availableCategories: Category[] = [
   { id: 'etat-civil', name: 'État Civil' },
   { id: 'urbanisme', name: 'Urbanisme' },
@@ -79,15 +86,15 @@ export const availableCategories: Category[] = [
   { id: 'transport', name: 'Transport' },
   { id: 'culture', name: 'Culture et Loisirs' },
   { id: 'decisions-municipales', name: 'Décisions Municipales'},
-  // Added more specific categories often relevant to citizen services
   { id: 'environnement', name: 'Environnement' },
   { id: 'securite', name: 'Sécurité' },
   { id: 'aide-sociale', name: 'Aide Sociale' },
   { id: 'logement', name: 'Logement' },
   { id: 'travaux-publics', name: 'Travaux Publics' },
+  { id: 'voirie', name: 'Voirie et Propreté' },
+  { id: 'autres-demandes', name: 'Autres Demandes' },
 ];
 
-// Enum for Service Request Status, matching Prisma schema
 export enum ServiceRequestStatus {
   PENDING = "PENDING",
   IN_PROGRESS = "IN_PROGRESS",
@@ -95,9 +102,8 @@ export enum ServiceRequestStatus {
   REJECTED = "REJECTED",
 }
 
-// Interface for Service Request History Log entries
 export interface ServiceRequestHistoryEntry {
-  timestamp: string; // ISO string date
+  timestamp: string; 
   adminId: string;
   adminName?: string | null;
   action: 'STATUS_CHANGE' | 'ASSIGNMENT' | 'NOTE_ADDED' | 'CREATED';
@@ -105,11 +111,10 @@ export interface ServiceRequestHistoryEntry {
   newStatus?: ServiceRequestStatus;
   assignedToAdminId?: string | null;
   assignedToAdminName?: string | null;
-  notes?: string; // General notes for any action
-  description?: string; // For CREATED action initial description
+  notes?: string; 
+  description?: string; 
 }
 
-// Interface for Service Request data (subset of Prisma model for client-side use if needed)
 export interface ServiceRequest {
   id: string;
   requestType: string;
@@ -118,11 +123,47 @@ export interface ServiceRequest {
   status: ServiceRequestStatus;
   resolutionNotes?: string | null;
   adminNotes?: string | null;
-  historyLog: ServiceRequestHistoryEntry[]; // Changed from Json? to typed array
+  historyLog: ServiceRequestHistoryEntry[]; 
   citizenId: string;
   // citizen: Citizen; // Prisma Citizen type
   assignedAdminId?: string | null;
   // assignedAdmin?: User | null; // Prisma User type
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface AdminUserForSelect {
+  id: string;
+  name: string | null;
+}
+
+// Types for Citizen Service Request API
+export interface CitizenServiceRequestCreatePayload {
+  requestType: string;
+  description: string;
+  attachments?: string[];
+}
+
+export interface CitizenServiceRequestCreateResponse {
+  success: boolean;
+  data?: ServiceRequest;
+  error?: string;
+}
+
+export interface CitizenServiceRequestListResponse {
+  success: boolean;
+  data?: {
+    requests: Pick<ServiceRequest, 'id' | 'requestType' | 'status' | 'createdAt' | 'updatedAt'>[];
+    totalRecords: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+  };
+  error?: string;
+}
+
+export interface CitizenServiceRequestDetailsResponse {
+  success: boolean;
+  data?: ServiceRequest; // Full details including historyLog
+  error?: string;
 }
