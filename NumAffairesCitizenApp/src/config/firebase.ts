@@ -5,13 +5,13 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 
 // IMPORTANT: Remplacez ces valeurs par votre configuration Firebase réelle !
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  // measurementId: "YOUR_MEASUREMENT_ID" // Optionnel pour Analytics
+  apiKey: "AIzaSyDZbsKXxbFj8V4waZ3H1ewRQl70w9Dl_OU",
+  authDomain: "numaffaires.firebaseapp.com",
+  projectId: "numaffaires",
+  storageBucket: "numaffaires.firebasestorage.app",
+  messagingSenderId: "570366956356",
+  appId: "1:570366956356:web:b54a2e81bcdaadca2dbd11",
+  measurementId: "G-FME4LW0TN3" // Optionnel pour Analytics
 };
 
 // Initialiser Firebase
