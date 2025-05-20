@@ -4,6 +4,7 @@
 import { suggestContentMetadata, type SuggestContentMetadataInput, type SuggestContentMetadataOutput } from "@/ai/flows/suggest-content-metadata";
 import { draftCommunicationMessage, type DraftCommunicationMessageInput, type DraftCommunicationMessageOutput } from "@/ai/flows/draft-communication-message-flow";
 import { generateImageFromPrompt, type GenerateImageInput, type GenerateImageOutput } from "@/ai/flows/generate-image-flow";
+import { summarizeDecisionContent, type SummarizeDecisionInput, type SummarizeDecisionOutput } from "@/ai/flows/summarize-decision-flow";
 
 export async function getAISuggestions(input: SuggestContentMetadataInput): Promise<SuggestContentMetadataOutput | { error: string }> {
   try {
@@ -48,5 +49,18 @@ export async function getAIGeneratedImage(input: GenerateImageInput): Promise<Ge
         return { error: "The configured AI model does not support image generation. Please check model settings." };
     }
     return { error: "Failed to generate AI image. Please try again." };
+  }
+}
+
+export async function getAISummaryForDecision(input: SummarizeDecisionInput): Promise<SummarizeDecisionOutput | { error: string }> {
+  try {
+    if (!input.decisionContent || input.decisionContent.trim().length < 20) {
+        return { error: "Decision content is too short to generate a meaningful summary." };
+    }
+    const result = await summarizeDecisionContent(input);
+    return result;
+  } catch (error) {
+    console.error("Error getting AI summary for decision:", error);
+    return { error: "Failed to get AI summary for decision. Please try again." };
   }
 }

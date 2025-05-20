@@ -15,7 +15,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createDecision } from "@/lib/actions/decisions";
-import { Loader2, CalendarIcon, FileText } from "lucide-react";
+import { getAISummaryForDecision } from "@/lib/actions/ai";
+import { Loader2, CalendarIcon, FileText, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -38,6 +39,7 @@ type DecisionFormData = z.infer<typeof decisionSchema>;
 
 export default function NewDecisionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAiSummaryLoading, setIsAiSummaryLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -55,6 +57,32 @@ export default function NewDecisionPage() {
       attachmentUrl: "",
     },
   });
+
+  const handleAiSuggestSummary = async () => {
+    const decisionContentValue = form.getValues("content");
+    if (!decisionContentValue || decisionContentValue.trim().length < 20) {
+      toast({
+        title: "Content too short",
+        description: "Please provide more decision content (at least 20 characters) for AI summary generation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsAiSummaryLoading(true);
+    try {
+      const result = await getAISummaryForDecision({ decisionContent: decisionContentValue });
+      if ("error" in result) {
+        toast({ title: "AI Summary Error", description: result.error, variant: "destructive" });
+      } else {
+        form.setValue("summary", result.summary);
+        toast({ title: "AI Summary Suggested", description: "Summary field has been populated." });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Could not fetch AI summary.", variant: "destructive" });
+    } finally {
+      setIsAiSummaryLoading(false);
+    }
+  };
 
   const handleFormSubmit = async (data: DecisionFormData, submitStatus: 'draft' | 'published') => {
     setIsSubmitting(true);
@@ -134,6 +162,31 @@ export default function NewDecisionPage() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="summary"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between items-center mb-1">
+                        <FormLabel>Summary (Optional)</FormLabel>
+                        <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleAiSuggestSummary}
+                        disabled={isAiSummaryLoading || isSubmitting}
+                        >
+                        {isAiSummaryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Suggest with AI
+                        </Button>
+                    </div>
+                    <FormControl>
+                      <Textarea placeholder="A brief, citizen-friendly summary of the decision..." {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -187,19 +240,7 @@ export default function NewDecisionPage() {
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="summary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Summary (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="A brief summary of the decision..." {...field} rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -208,9 +249,9 @@ export default function NewDecisionPage() {
                     <FormItem>
                       <FormLabel>Categories (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Urbanisme, Transport, Santé Publique" {...field} value={field.value || ""} />
+                        <Input placeholder="e.g., Urbanisme, Transport" {...field} value={field.value || ""} />
                       </FormControl>
-                      <FormDescription>Comma-separated values. Use thematic categories.</FormDescription>
+                      <FormDescription>Comma-separated values. Use thematic categories relevant for notifications.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -271,17 +312,17 @@ export default function NewDecisionPage() {
                 type="button"
                 variant="outline"
                 onClick={form.handleSubmit(data => handleFormSubmit(data, "draft"))}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isAiSummaryLoading}
               >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {(isSubmitting || isAiSummaryLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save as Draft
               </Button>
               <Button
                 type="button"
                 onClick={form.handleSubmit(data => handleFormSubmit(data, "published"))}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isAiSummaryLoading}
               >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {(isSubmitting || isAiSummaryLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Publish Decision
               </Button>
             </CardFooter>
@@ -291,5 +332,3 @@ export default function NewDecisionPage() {
     </div>
   );
 }
-
-    
