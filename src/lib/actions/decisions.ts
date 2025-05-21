@@ -1,8 +1,10 @@
 
 "use server";
 
-import type { Decision } from "@/types";
+import { type Decision, ContentStatus } from "@/types";
 import { revalidatePath } from "next/cache";
+
+const placeholderAuthorId = "admin-user-placeholder"; // Pour les données simulées
 
 // Mock database for decisions
 let decisions: Decision[] = [
@@ -13,13 +15,14 @@ let decisions: Decision[] = [
     summary: "Nouvelles règles de circulation et stationnement en centre-ville.",
     categories: ["Décisions Municipales", "Transport"],
     tags: ["arrêté", "circulation", "stationnement", "centre-ville"],
-    status: "published",
+    status: ContentStatus.PUBLISHED,
     decisionDate: new Date("2024-07-10T00:00:00Z"),
     referenceNumber: "AM-2024-001",
     createdAt: new Date("2024-07-01T09:00:00Z"),
     updatedAt: new Date("2024-07-01T09:30:00Z"),
     publishedAt: new Date("2024-07-01T09:30:00Z"),
-    attachmentUrl: "https://placehold.co/pdf-document.pdf", // Placeholder for PDF link
+    attachmentUrl: "https://placehold.co/pdf-document.pdf",
+    authorId: placeholderAuthorId,
   },
   {
     id: "dec2",
@@ -28,32 +31,40 @@ let decisions: Decision[] = [
     summary: "Adoption du budget primitif pour l'année 2025.",
     categories: ["Décisions Municipales", "Finance"],
     tags: ["délibération", "budget", "conseil municipal"],
-    status: "draft",
+    status: ContentStatus.DRAFT,
     decisionDate: new Date("2024-07-15T00:00:00Z"),
     referenceNumber: "DEL-2024-015",
     createdAt: new Date("2024-07-05T14:00:00Z"),
     updatedAt: new Date("2024-07-05T14:00:00Z"),
+    authorId: placeholderAuthorId,
   },
 ];
 
-export async function createDecision(data: Omit<Decision, "id" | "createdAt" | "updatedAt">): Promise<Decision | { error: string }> {
+type CreateDecisionData = Omit<Decision, "id" | "createdAt" | "updatedAt" | "publishedAt" | "authorId"> & { authorId?: string; status: ContentStatus };
+
+
+export async function createDecision(data: CreateDecisionData): Promise<Decision | { error: string }> {
   try {
     const newDecision: Decision = {
       ...data,
       id: String(Date.now() + Math.random()),
+      authorId: data.authorId || placeholderAuthorId,
+      summary: data.summary || "",
+      attachmentUrl: data.attachmentUrl || "",
+      categories: data.categories || [],
+      tags: data.tags || [],
+      status: data.status || ContentStatus.DRAFT,
       createdAt: new Date(),
       updatedAt: new Date(),
+      publishedAt: data.status === ContentStatus.PUBLISHED ? new Date() : undefined,
     };
-    if (newDecision.status === 'published' && !newDecision.publishedAt) {
-      newDecision.publishedAt = new Date();
-    }
     decisions.unshift(newDecision);
     revalidatePath("/admin/decisions");
     revalidatePath("/admin/dashboard"); 
     return newDecision;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating decision:", error);
-    return { error: "Failed to create decision." };
+    return { error: error.message || "Failed to create decision." };
   }
 }
 
@@ -65,7 +76,9 @@ export async function getDecisionById(id: string): Promise<Decision | undefined>
   return Promise.resolve(decisions.find(decision => decision.id === id));
 }
 
-export async function updateDecision(id: string, data: Partial<Omit<Decision, "id" | "createdAt" | "updatedAt">>): Promise<Decision | { error: string }> {
+type UpdateDecisionData = Partial<Omit<Decision, "id" | "createdAt" | "updatedAt" | "publishedAt" | "authorId">>;
+
+export async function updateDecision(id: string, data: UpdateDecisionData): Promise<Decision | { error: string }> {
   try {
     const decisionIndex = decisions.findIndex(decision => decision.id === id);
     if (decisionIndex === -1) {
@@ -73,18 +86,27 @@ export async function updateDecision(id: string, data: Partial<Omit<Decision, "i
     }
     const existingDecision = decisions[decisionIndex];
     
-    const updatedDecisionData: Partial<Decision> = {
+    const updatedData: Partial<Decision> = {
       ...data,
       updatedAt: new Date(),
     };
 
-    if (data.status === "published" && existingDecision.status !== "published") {
-      updatedDecisionData.publishedAt = new Date();
+    if (data.status === ContentStatus.PUBLISHED && existingDecision.status !== ContentStatus.PUBLISHED) {
+      updatedData.publishedAt = new Date();
+    } else if (data.status === ContentStatus.DRAFT && existingDecision.status === ContentStatus.PUBLISHED) {
+      // updatedData.publishedAt = undefined; // Optionnel
     }
+
+    if (data.categories !== undefined) updatedData.categories = data.categories || [];
+    if (data.tags !== undefined) updatedData.tags = data.tags || [];
     
     const updatedDecision: Decision = {
       ...existingDecision,
-      ...updatedDecisionData,
+      ...updatedData,
+      title: updatedData.title || existingDecision.title,
+      content: updatedData.content || existingDecision.content,
+      decisionDate: updatedData.decisionDate || existingDecision.decisionDate,
+      status: updatedData.status || existingDecision.status,
     };
     
     decisions[decisionIndex] = updatedDecision;
@@ -92,9 +114,9 @@ export async function updateDecision(id: string, data: Partial<Omit<Decision, "i
     revalidatePath(`/admin/decisions/edit/${id}`);
     revalidatePath("/admin/dashboard");
     return updatedDecision;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating decision:", error);
-    return { error: "Failed to update decision." };
+    return { error: error.message || "Failed to update decision." };
   }
 }
 
@@ -108,8 +130,8 @@ export async function deleteDecision(id: string): Promise<{ success: boolean; er
     revalidatePath("/admin/decisions");
     revalidatePath("/admin/dashboard");
     return { success: true, message: "Decision deleted successfully." };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting decision:", error);
-    return { success: false, error: "Failed to delete decision." };
+    return { success: false, error: error.message || "Failed to delete decision." };
   }
 }

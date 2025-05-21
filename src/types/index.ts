@@ -7,7 +7,7 @@ export interface Announcement {
   summary?: string;
   categories?: string[];
   tags?: string[];
-  status: ContentStatus;
+  status: ContentStatus; // Utilise l'enum Prisma directement ou un alias
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;
@@ -22,7 +22,7 @@ export interface Event {
   description: string;
   eventDate: Date;
   location: string;
-  status: ContentStatus;
+  status: ContentStatus; // Utilise l'enum Prisma directement ou un alias
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;
@@ -37,7 +37,7 @@ export interface Decision {
   summary?: string;
   categories?: string[];
   tags?: string[];
-  status: ContentStatus;
+  status: ContentStatus; // Utilise l'enum Prisma directement ou un alias
   decisionDate: Date;
   referenceNumber?: string;
   createdAt: Date;
@@ -47,6 +47,8 @@ export interface Decision {
   authorId: string;
 }
 
+// Utilisez les enums générés par Prisma si possible, ou assurez-vous qu'ils correspondent
+// Pour la simplicité, nous allons les définir ici mais ils doivent être en phase avec Prisma
 export enum ContentStatus {
   DRAFT = "DRAFT",
   PUBLISHED = "PUBLISHED",
@@ -137,7 +139,7 @@ export interface ServiceRequest {
 export interface AdminUserForSelect {
   id: string;
   name: string | null;
-  email?: string | null;
+  email?: string | null; // Gardé optionnel pour la flexibilité
 }
 
 // Types for Citizen Service Request API
@@ -151,6 +153,7 @@ export interface CitizenServiceRequestCreateResponse {
   success: boolean;
   data?: ServiceRequest;
   error?: string;
+  details?: any; // For Zod validation errors
 }
 
 export interface CitizenServiceRequestListResponse {

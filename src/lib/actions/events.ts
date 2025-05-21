@@ -1,8 +1,10 @@
 
 "use server";
 
-import type { Event } from "@/types";
+import { type Event, ContentStatus } from "@/types";
 import { revalidatePath } from "next/cache";
+
+const placeholderAuthorId = "admin-user-placeholder"; // Pour les données simulées
 
 // Mock database for events
 let events: Event[] = [
@@ -12,11 +14,12 @@ let events: Event[] = [
     description: "Rejoignez-nous pour célébrer la Fête de l'Indépendance avec des feux d'artifice, de la musique et des activités pour toute la famille sur la place principale.",
     eventDate: new Date("2024-07-05T18:00:00Z"),
     location: "Place Principale de la Ville",
-    status: "published",
+    status: ContentStatus.PUBLISHED,
     createdAt: new Date("2024-06-20T10:00:00Z"),
     updatedAt: new Date("2024-06-20T11:30:00Z"),
     publishedAt: new Date("2024-06-20T11:30:00Z"),
     imageUrl: "https://placehold.co/600x400.png",
+    authorId: placeholderAuthorId,
   },
   {
     id: "event2",
@@ -24,31 +27,35 @@ let events: Event[] = [
     description: "Découvrez le talent de nos artisans locaux. Vente de produits faits main, dégustations et animations.",
     eventDate: new Date("2024-08-12T09:00:00Z"),
     location: "Parc Municipal",
-    status: "draft",
+    status: ContentStatus.DRAFT,
     createdAt: new Date("2024-07-01T15:00:00Z"),
     updatedAt: new Date("2024-07-01T15:00:00Z"),
     imageUrl: "https://placehold.co/600x400.png",
+    authorId: placeholderAuthorId,
   },
 ];
 
-export async function createEvent(data: Omit<Event, "id" | "createdAt" | "updatedAt">): Promise<Event | { error: string }> {
+type CreateEventData = Omit<Event, "id" | "createdAt" | "updatedAt" | "publishedAt" | "authorId"> & { authorId?: string; status: ContentStatus };
+
+export async function createEvent(data: CreateEventData): Promise<Event | { error: string }> {
   try {
     const newEvent: Event = {
       ...data,
       id: String(Date.now() + Math.random()),
+      authorId: data.authorId || placeholderAuthorId,
+      imageUrl: data.imageUrl || "",
+      status: data.status || ContentStatus.DRAFT,
       createdAt: new Date(),
       updatedAt: new Date(),
+      publishedAt: data.status === ContentStatus.PUBLISHED ? new Date() : undefined,
     };
-    if (newEvent.status === 'published' && !newEvent.publishedAt) {
-      newEvent.publishedAt = new Date();
-    }
     events.unshift(newEvent);
     revalidatePath("/admin/events");
     revalidatePath("/admin/dashboard"); 
     return newEvent;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating event:", error);
-    return { error: "Failed to create event." };
+    return { error: error.message || "Failed to create event." };
   }
 }
 
@@ -60,7 +67,9 @@ export async function getEventById(id: string): Promise<Event | undefined> {
   return Promise.resolve(events.find(event => event.id === id));
 }
 
-export async function updateEvent(id: string, data: Partial<Omit<Event, "id" | "createdAt" | "updatedAt">>): Promise<Event | { error: string }> {
+type UpdateEventData = Partial<Omit<Event, "id" | "createdAt" | "updatedAt" | "publishedAt" | "authorId">>;
+
+export async function updateEvent(id: string, data: UpdateEventData): Promise<Event | { error: string }> {
   try {
     const eventIndex = events.findIndex(event => event.id === id);
     if (eventIndex === -1) {
@@ -68,20 +77,25 @@ export async function updateEvent(id: string, data: Partial<Omit<Event, "id" | "
     }
     const existingEvent = events[eventIndex];
     
-    const updatedEventData: Partial<Event> = {
+    const updatedData: Partial<Event> = {
       ...data,
       updatedAt: new Date(),
     };
 
-    if (data.status === "published" && existingEvent.status !== "published") {
-      updatedEventData.publishedAt = new Date();
-    } else if (data.status === "draft" && existingEvent.status === "published") {
-      // Optionally clear publishedAt or keep it, for now we keep it
+    if (data.status === ContentStatus.PUBLISHED && existingEvent.status !== ContentStatus.PUBLISHED) {
+      updatedData.publishedAt = new Date();
+    } else if (data.status === ContentStatus.DRAFT && existingEvent.status === ContentStatus.PUBLISHED) {
+      // updatedData.publishedAt = undefined; // Optionnel
     }
     
     const updatedEvent: Event = {
       ...existingEvent,
-      ...updatedEventData,
+      ...updatedData,
+      title: updatedData.title || existingEvent.title,
+      description: updatedData.description || existingEvent.description,
+      eventDate: updatedData.eventDate || existingEvent.eventDate,
+      location: updatedData.location || existingEvent.location,
+      status: updatedData.status || existingEvent.status,
     };
     
     events[eventIndex] = updatedEvent;
@@ -89,9 +103,9 @@ export async function updateEvent(id: string, data: Partial<Omit<Event, "id" | "
     revalidatePath(`/admin/events/edit/${id}`);
     revalidatePath("/admin/dashboard");
     return updatedEvent;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating event:", error);
-    return { error: "Failed to update event." };
+    return { error: error.message || "Failed to update event." };
   }
 }
 
@@ -105,8 +119,8 @@ export async function deleteEvent(id: string): Promise<{ success: boolean; error
     revalidatePath("/admin/events");
     revalidatePath("/admin/dashboard");
     return { success: true, message: "Event deleted successfully." };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting event:", error);
-    return { success: false, error: "Failed to delete event." };
+    return { success: false, error: error.message || "Failed to delete event." };
   }
 }
