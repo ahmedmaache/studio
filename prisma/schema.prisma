@@ -1,0 +1,201 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  EDITOR
+}
+
+model User {
+  id                      String            @id @default(cuid())
+  email                   String            @unique
+  hashedPassword          String
+  name                    String?
+  emailVerified           DateTime?
+  image                   String?
+  role                    AdminRole         @default(EDITOR)
+  accounts                Account[]
+  sessions                Session[]
+  announcements           Announcement[]    @relation("AnnouncementAuthor")
+  events                  Event[]           @relation("EventAuthor")
+  decisions               Decision[]        @relation("DecisionAuthor")
+  communicationLogs       CommunicationLog[] @relation("CommunicationLogAdmin")
+  assignedServiceRequests ServiceRequest[]  @relation("AssignedAdminRequests")
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Announcement {
+  id           String        @id @default(cuid())
+  title        String
+  content      String        @db.Text
+  summary      String?       @db.Text
+  categories   String[]      @default([])
+  tags         String[]      @default([])
+  status       ContentStatus @default(DRAFT)
+  imageUrl     String?
+  publishedAt  DateTime?
+  authorId     String
+  author       User          @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Event {
+  id          String        @id @default(cuid())
+  title       String
+  description String        @db.Text
+  eventDate   DateTime
+  location    String
+  status      ContentStatus @default(DRAFT)
+  imageUrl    String?
+  publishedAt DateTime?
+  authorId    String
+  author      User          @relation("EventAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Decision {
+  id              String        @id @default(cuid())
+  title           String
+  content         String        @db.Text
+  summary         String?       @db.Text
+  categories      String[]      @default([])
+  tags            String[]      @default([])
+  status          ContentStatus @default(DRAFT)
+  decisionDate    DateTime
+  referenceNumber String?
+  publishedAt     DateTime?
+  attachmentUrl   String?
+  authorId        String
+  author          User          @relation("DecisionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Citizen {
+  id                        String                     @id @default(cuid())
+  phoneNumber               String                     @unique
+  name                      String?
+  address                   String?
+  serviceRequests           ServiceRequest[]
+  otp                       String?
+  otpExpiresAt              DateTime?
+  isVerified                Boolean                    @default(false)
+  pushTokens                String[]                   @default([])
+  notificationSubscriptions NotificationSubscription[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+model ServiceRequest {
+  id                String               @id @default(cuid())
+  citizenId         String
+  citizen           Citizen              @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  requestType       String
+  description       String               @db.Text
+  attachments       String[]             @default([])
+  status            ServiceRequestStatus @default(PENDING)
+  resolutionNotes   String?              @db.Text
+  adminNotes        String?              @db.Text
+  historyLog        Json                 @default("[]")
+  assignedAdminId   String?
+  assignedAdmin     User?                @relation("AssignedAdminRequests", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+}
+
+enum CommunicationStatus {
+  PENDING
+  SENT
+  PARTIALLY_FAILED
+  FAILED
+  DRAFT
+  SCHEDULED
+}
+
+model CommunicationLog {
+  id                       String              @id @default(cuid())
+  messageContent           String              @db.Text
+  channels                 Json // { sms?: boolean; push?: boolean; whatsapp?: boolean }
+  targetAudienceCategories String[]
+  targetCitizenIds         String[]            @default([])
+  status                   CommunicationStatus @default(PENDING)
+  scheduledAt              DateTime?
+  sentAt                   DateTime?
+  failureReason            String?
+  fcmMessageIds            String[]            @default([])
+  fcmSuccessCount          Int?
+  fcmFailureCount          Int?
+  adminId                  String
+  admin                    User                @relation("CommunicationLogAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+}
+
+model NotificationSubscription {
+  id           String   @id @default(cuid())
+  citizenId    String
+  citizen      Citizen  @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  categoryName String // Corresponds to 'name' in availableCategories
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([citizenId, categoryName])
+}

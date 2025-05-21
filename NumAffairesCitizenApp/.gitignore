@@ -1,0 +1,27 @@
+# Expo
+.expo/
+dist/
+node_modules/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# Firebase (si vous placez des fichiers de configuration ici, mais déconseillé pour les clés)
+# google-services.json # Souvent versionné, mais soyez prudent si privé
+# GoogleService-Info.plist # Souvent versionné, mais soyez prudent si privé
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# macOS
+.DS_Store
+
+# Cache
+.jest/

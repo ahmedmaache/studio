@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Test ciblage FCM : envoi communication ciblée",
+			"command": "node ./src/lib/actions/communication.js --send --message \"Test FCM\" --categories \"Voirie\" --channels push --adminId 1",
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}
